@@ -169,7 +169,7 @@ export default function CreatorStudioPage() {
   }, [authLoading, loadStudio, user]);
 
   const metrics = useMemo(() => (snapshot ? filterCreatorAnalytics(snapshot, "all") : null), [snapshot]);
-  const posts = useMemo(() => snapshot?.posts.map((entry) => entry.post) ?? [], [snapshot]);
+  const posts = useMemo(() => (snapshot?.posts.map((entry) => entry.post) ?? []).sort((a, b) => b.createdAt - a.createdAt), [snapshot]);
   const visiblePosts = useMemo(
     () => posts.filter((post) => filter === "all" || post.format === filter),
     [filter, posts],
@@ -404,7 +404,7 @@ export default function CreatorStudioPage() {
                 {post.visibility === "Unlisted" ? "Unlisted draft" : post.visibility}
               </span>
             </div>
-            <p className="mt-1 text-xs font-semibold text-muted-foreground">{publishedDate(post.createdAt)}</p>
+            <p className="mt-1 text-xs font-semibold text-muted-foreground">Uploaded {publishedDate(post.createdAt)} · Views unavailable</p>
             <div className="mt-2 flex items-center gap-3 text-xs font-bold text-muted-foreground">
               <span>
                 <Heart size={13} className="mr-1 inline text-primary" />

@@ -90,7 +90,7 @@ function profileMediaFromPost(post: StoredPost): ProfileMedia {
     image: post.mediaType === "video" ? post.mediaUrl : post.mediaRef,
     thumbnail: post.thumbnailUrl,
     imageAlt: post.mediaAlt,
-    views: "New post",
+    views: "Views unavailable",
     duration: post.duration,
     type: post.format === "short" ? "shorts" : "videos",
     isVideo: post.mediaType === "video",
@@ -979,7 +979,7 @@ export default function ProfilePage() {
           </div>
           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
             <Eye size={14} className="text-primary" aria-hidden="true" />
-            {media.length} published
+            {media.length} uploads
           </span>
         </div>
         <div
@@ -1035,12 +1035,12 @@ export default function ProfilePage() {
               }
             />
           ) : (
-            <div className={cn("grid gap-2", activeTab === "shorts" ? "grid-cols-2" : "grid-cols-3")}>
+            <div className="grid grid-cols-2 gap-2">
               {visibleMedia.map((item) =>
                 item.isLongVideo ? (
                   <article
                     key={item.id}
-                    className="col-span-3 overflow-hidden rounded-2xl border border-border/50 bg-card p-2 shadow-premium"
+                    className="min-w-0 overflow-hidden rounded-2xl border border-border/50 bg-card p-2 shadow-premium"
                   >
                     <button
                       type="button"
@@ -1085,14 +1085,14 @@ export default function ProfilePage() {
                         {item.duration}
                       </span>
                     </button>
-                    <div className="flex items-start gap-2 px-2 pb-2 pt-3">
-                      <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-start gap-2 px-1 pb-2 pt-3">
+                      <div className="min-w-0 w-full">
                         <p className="truncate text-sm font-extrabold text-card-foreground">
                           {item.featured ? "📌 Featured · " : ""}
                           {item.title}
                         </p>
                         <p className="mt-0.5 text-xs font-bold text-muted-foreground">
-                          {item.creatorName} · {item.creatorHandle} · {formatPublishedDate(item.createdAt)}
+                          {formatPublishedDate(item.createdAt)} · {item.views}
                         </p>
                       </div>
                       {isOwnProfile && activeTab !== "saved" && (
@@ -1192,7 +1192,8 @@ export default function ProfilePage() {
                     </button>
                     <div className="p-2">
                       <p className="truncate text-xs font-extrabold text-card-foreground">{item.title}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{item.duration}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{formatPublishedDate(item.createdAt)} · {item.views}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{item.duration} · {item.visibility}</p>
                       {isOwnProfile && (
                         <div className="mt-2 flex flex-wrap items-center gap-1 border-t border-border pt-2">
                           <button
