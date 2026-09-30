@@ -87,7 +87,7 @@ function profileMediaFromPost(post: StoredPost): ProfileMedia {
     id: post.id,
     format: post.format,
     title: post.title || post.caption || "Untitled post",
-    image: post.mediaRef,
+    image: post.mediaType === "video" ? post.mediaUrl : post.mediaRef,
     thumbnail: post.thumbnailUrl,
     imageAlt: post.mediaAlt,
     views: "New post",
@@ -121,7 +121,14 @@ export default function ProfilePage() {
   const profileId = profileUserId || user?.id || "";
   const isOwnProfile = Boolean(user && profileId === user.id);
   const [profile, setProfile] = useState<StoredProfile | null>(null);
-  const [draft, setDraft] = useState({ username: "", displayName: "", channelName: "", bio: "", avatarUrl: "", channelAvatarUrl: "" });
+  const [draft, setDraft] = useState({
+    username: "",
+    displayName: "",
+    channelName: "",
+    bio: "",
+    avatarUrl: "",
+    channelAvatarUrl: "",
+  });
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const channelUploaderRef = useRef<HTMLElement>(null);
   const [channelLogoUploading, setChannelLogoUploading] = useState(false);
@@ -264,7 +271,8 @@ export default function ProfilePage() {
       const nextMedia = profileMediaFromPost(post);
       setMedia((current) => [nextMedia, ...current.filter((item) => item.id !== post.id)]);
     };
-    const onDeleted = (event: Event) => setMedia((current) => current.filter((item) => item.id !== (event as CustomEvent<string>).detail));
+    const onDeleted = (event: Event) =>
+      setMedia((current) => current.filter((item) => item.id !== (event as CustomEvent<string>).detail));
     window.addEventListener(localPostPublishedEvent, onLocalPostPublished);
     window.addEventListener(localPostDeletedEvent, onDeleted);
     return () => {
@@ -554,7 +562,14 @@ export default function ProfilePage() {
       await window.genmb.kv.set(profileKey(user.id), nextProfile);
       window.dispatchEvent(new CustomEvent(profileUpdatedEvent, { detail: user.id }));
       setProfile(nextProfile);
-      setDraft({ username, displayName, channelName, bio, avatarUrl: nextProfile.avatarUrl ?? "", channelAvatarUrl: nextProfile.channelAvatarUrl ?? "" });
+      setDraft({
+        username,
+        displayName,
+        channelName,
+        bio,
+        avatarUrl: nextProfile.avatarUrl ?? "",
+        channelAvatarUrl: nextProfile.channelAvatarUrl ?? "",
+      });
       setIsEditing(false);
       setStatus("Profile saved to your ZIVO account.");
     } catch (caughtError) {
@@ -858,10 +873,32 @@ export default function ProfilePage() {
                 />
               </div>
               <div className="space-y-2">
-                <p className="text-xs font-bold text-muted-foreground">Channel logo (separate from your personal photo)</p>
-                {draft.channelAvatarUrl && <img data-genmb-img="Channel logo preview" src={draft.channelAvatarUrl} alt="Channel logo preview" className="size-16 rounded-full object-cover object-center" onError={(event) => { event.currentTarget.style.opacity = "0"; }} />}
-                <genmb-uploader ref={channelUploaderRef} accept="image/*" folder="zivo-channel-logos" theme="dark" label="Upload channel logo" />
-                {channelLogoUploading && <p role="status" className="text-xs text-muted-foreground">Uploading channel logo…</p>}
+                <p className="text-xs font-bold text-muted-foreground">
+                  Channel logo (separate from your personal photo)
+                </p>
+                {draft.channelAvatarUrl && (
+                  <img
+                    data-genmb-img="Channel logo preview"
+                    src={draft.channelAvatarUrl}
+                    alt="Channel logo preview"
+                    className="size-16 rounded-full object-cover object-center"
+                    onError={(event) => {
+                      event.currentTarget.style.opacity = "0";
+                    }}
+                  />
+                )}
+                <genmb-uploader
+                  ref={channelUploaderRef}
+                  accept="image/*"
+                  folder="zivo-channel-logos"
+                  theme="dark"
+                  label="Upload channel logo"
+                />
+                {channelLogoUploading && (
+                  <p role="status" className="text-xs text-muted-foreground">
+                    Uploading channel logo…
+                  </p>
+                )}
               </div>
               <div>
                 <label htmlFor="profile-bio" className="mb-1.5 block text-xs font-bold text-muted-foreground">
@@ -998,7 +1035,7 @@ export default function ProfilePage() {
               }
             />
           ) : (
-            <div className="grid grid-cols-3 gap-2">
+            <div className={cn("grid gap-2", activeTab === "shorts" ? "grid-cols-2" : "grid-cols-3")}>
               {visibleMedia.map((item) =>
                 item.isLongVideo ? (
                   <article
@@ -1109,6 +1146,97 @@ export default function ProfilePage() {
                         >
                           <Trash2 size={17} aria-hidden="true" />
                         </button>
+                      )}
+                    </div>
+                  </article>
+                ) : item.type === "shorts" && activeTab === "shorts" ? (
+                  <article
+                    key={item.id}
+                    className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card shadow-premium"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/shorts/${encodeURIComponent(item.id)}`)}
+                      className="relative block aspect-[9/16] w-full overflow-hidden bg-muted text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={`Watch ${item.title}`}
+                    >
+                      {item.thumbnail ? (
+                        <img
+                          src={item.thumbnail}
+                          alt={`${item.title} thumbnail`}
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
+                      ) : item.isVideo ? (
+                        <video
+                          src={item.image}
+                          preload="metadata"
+                          muted
+                          playsInline
+                          aria-label={`${item.imageAlt} preview`}
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
+                      ) : (
+                        <img
+                          data-genmb-img={item.imageAlt}
+                          src={item.image}
+                          alt={item.imageAlt}
+                          className="absolute inset-0 h-full w-full object-cover"
+                          onError={(event) => {
+                            event.currentTarget.src = `https://picsum.photos/seed/zivo-short-${item.id}/360/640`;
+                          }}
+                        />
+                      )}
+                      <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/70 to-transparent p-2 text-xs font-extrabold text-foreground">
+                        <Play size={18} fill="currentColor" aria-hidden="true" />
+                      </span>
+                    </button>
+                    <div className="p-2">
+                      <p className="truncate text-xs font-extrabold text-card-foreground">{item.title}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{item.duration}</p>
+                      {isOwnProfile && (
+                        <div className="mt-2 flex flex-wrap items-center gap-1 border-t border-border pt-2">
+                          <button
+                            type="button"
+                            disabled={Boolean(featuringId) || (!item.isPublic && !item.featured)}
+                            onClick={() => void toggleFeatured(item)}
+                            aria-label={
+                              item.featured ? `Remove ${item.title} from featured` : `Set ${item.title} as featured`
+                            }
+                            className="flex size-9 items-center justify-center rounded-lg bg-muted text-primary focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                          >
+                            <Pin size={16} fill={item.featured ? "currentColor" : "none"} aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={Boolean(editLoadingId)}
+                            onClick={() => void openVideoEditor(item)}
+                            aria-label={`Edit ${item.title}`}
+                            className="flex size-9 items-center justify-center rounded-lg bg-muted text-card-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                          >
+                            <Pencil size={16} aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => openDeleteDialog(item, event.currentTarget)}
+                            aria-label={`Delete ${item.title}`}
+                            className="flex size-9 items-center justify-center rounded-lg bg-muted text-card-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            <Trash2 size={16} aria-hidden="true" />
+                          </button>
+                          <select
+                            aria-label={`Visibility for ${item.title}`}
+                            value={item.visibility}
+                            disabled={Boolean(visibilityId) || Boolean(featuringId) || isDeleting}
+                            onChange={(event) =>
+                              void changeVisibility(item, event.target.value as "Public" | "Unlisted" | "Private")
+                            }
+                            className="min-h-9 min-w-0 max-w-full rounded-lg border border-border bg-muted px-1 text-xs font-bold text-card-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                          >
+                            <option value="Public">Public</option>
+                            <option value="Unlisted">Unlisted</option>
+                            <option value="Private">Private</option>
+                          </select>
+                        </div>
                       )}
                     </div>
                   </article>

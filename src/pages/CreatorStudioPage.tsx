@@ -367,14 +367,14 @@ export default function CreatorStudioPage() {
     return (
       <article key={post.id} className="overflow-hidden rounded-2xl border border-border bg-card shadow-premium">
         <div className="flex gap-3 p-3">
-          <div className={cn("w-24 shrink-0 overflow-hidden rounded-xl border border-border bg-muted", post.format === "short" ? "aspect-[9/16]" : "aspect-video")} >
+          <div className={cn("relative shrink-0 overflow-hidden rounded-xl border border-border bg-muted", post.format === "short" ? "w-32 aspect-[9/16]" : "w-24 aspect-video")} >
             {post.mediaType === "video" ? (
-              post.thumbnailUrl ? <img src={post.thumbnailUrl} alt={`${post.title || post.caption} thumbnail`} className="size-full object-cover" /> : <video
+              post.thumbnailUrl ? <img src={post.thumbnailUrl} alt={`${post.title || post.caption} thumbnail`} className="absolute inset-0 h-full w-full object-cover" /> : <video
                 src={post.mediaUrl}
                 preload="metadata"
                 muted
                 playsInline
-                className="size-full object-cover"
+                className="absolute inset-0 h-full w-full object-cover"
                 aria-label={`${post.mediaAlt} preview`}
               />
             ) : (
