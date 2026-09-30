@@ -1,20 +1,16 @@
-# ZIVO Android build without GitHub workflows
+# ZIVO: GitHub Actions debug APK
 
-The GitHub sync warning means the integration can push ordinary project files but **cannot push `.github/workflows/*`** with its current GitHub authorization. A repository-side script cannot grant that permission or trigger GitHub Actions without a workflow already present on GitHub. Keep syncing the normal source files through the existing integration; this script is an alternative for building an APK **locally or on a separately configured CI runner**. It does not automatically run on GitHub pushes.
+The APK workflow is stored in `.github/workflows/android-apk.yml`. It builds on pushes to `main` (or from **Actions → ZIVO Android debug APK → Run workflow**) and uploads the `app-debug.apk` artifact. Download the artifact ZIP from the completed run's **Artifacts** section and extract `app-debug.apk`. This is a debug-signed testing APK, not a Play Store release.
 
-## Build a test APK
+## GitHub sync warning: workflow file was skipped
 
-1. Export or clone the complete project, including its `package.json` and dependencies. This editor snapshot does not contain a `package.json`; the script will stop with a clear error if your export also omits it. Ensure the manifest includes Vite, Capacitor CLI, Capacitor Android and the app's other dependencies.
-2. Install Node.js, a JDK (17+), and Android Studio/Android SDK. Set `ANDROID_HOME` (or `ANDROID_SDK_ROOT`) to the SDK directory. From the project root, run `npm ci` if a lockfile is available, otherwise `npm install`.
-3. Set the canonical *deployed* HTTPS app URL and run:
+The warning **“Pushed, except .github/workflows files. Disconnect and reconnect GitHub to include them.”** is a GitHub integration authorization restriction. Repository source code cannot give the sync integration permission or bypass GitHub's workflow-file protection. The `permissions: contents: read` setting inside the workflow controls the *running job*, not the integration that pushes it.
 
-   ```bash
-   export ZIVO_PRODUCTION_URL='https://your-deployed-zivo.example'
-   bash scripts/build-android-apk.sh
-   ```
+To enable automatic builds:
 
-The build script runs Vite, creates the Android project if necessary, syncs Capacitor, and runs Gradle `assembleDebug`. Find the test APK at `android/app/build/outputs/apk/debug/app-debug.apk`. Repeat after source changes. `android/` and the APK are generated locally; GitHub sync of source code alone will **not** produce an APK. Android loads `ZIVO_PRODUCTION_URL` at runtime, so deploy the latest web app before testing it. This APK is debug-signed; publishing requires your own release signing process.
+1. Disconnect and reconnect the GitHub sync integration, approving workflow-file access if GitHub offers it; sync again and confirm `.github/workflows/android-apk.yml` actually appears in the repository's **Code** tab. If the connection uses a GitHub App, its repository permissions must allow writing workflows; the repository owner may need to approve the updated permissions. A credential without that access cannot push workflow changes.
+2. If reconnecting still skips workflows, have a repository maintainer create `.github/workflows/android-apk.yml` directly in GitHub's web editor, pasting the contents of the project file, and commit it to the default branch. This is a **one-time GitHub-side setup**; subsequent normal source pushes to `main` trigger the existing workflow even if sync continues to skip workflow-file updates. To update the workflow later, repeat the GitHub-side edit or authorize sync. There is no code-only workaround that makes GitHub Actions run without a workflow committed on GitHub.
+3. In the GitHub repository, open **Settings → Secrets and variables → Actions → New repository secret** and set `ZIVO_PRODUCTION_URL` to your deployed ZIVO HTTPS URL. Android loads this hosted URL at runtime; deploy the newest web app before installing the APK. Do not commit a secret value.
+4. Ensure your GitHub repository has the **complete Vite project**, including `package.json` (and ideally `package-lock.json`) with Vite and Capacitor dependencies. **This editor project snapshot does not currently contain `package.json`**; until it is included in the synced repository, the workflow stops at its input check and cannot produce an APK. Also ensure the default branch is `main`; if it is different, change the workflow's `push.branches` value in the GitHub copy.
 
-To build on another CI system, configure its job to check out the synced repository, install the same prerequisites and dependencies, set `ZIVO_PRODUCTION_URL`, run `bash scripts/build-android-apk.sh`, and archive the APK path above as an artifact. No `.github/workflows` file is needed for that job.
-
-If you specifically need GitHub Actions to trigger on push, a GitHub connection authorized to update workflow files (or an authorized repository administrator adding the workflow) is still required; the script does not bypass that restriction.
+After the workflow file is committed and the other inputs are present, a push to `main` or a manual run starts the build. The job checks out code, installs Node, Java and Android SDK, installs npm dependencies, runs `scripts/build-android-apk.sh` (Vite → Capacitor → Gradle), then uploads `android/app/build/outputs/apk/debug/app-debug.apk` as a downloadable artifact. **Adding the workflow file inside this editor does not itself push it, change your GitHub permissions, or start a run.** Check the GitHub Code and Actions tabs to confirm both events actually occurred.
