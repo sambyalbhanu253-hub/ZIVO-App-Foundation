@@ -20,6 +20,7 @@ type Short = {
   id: string;
   creator: string;
   handle: string;
+  postType?: 'personal' | 'channel';
   avatar: string;
   image: string;
   imageSubject: string;
@@ -99,6 +100,7 @@ function shortFromStored(post: StoredPost): Short {
     id: post.id,
     creator: post.creatorName,
     handle: post.creatorHandle,
+    postType: post.post_type,
     avatar: post.creatorAvatar,
     image: post.mediaUrl || post.mediaRef,
     imageSubject: post.mediaAlt,
@@ -426,7 +428,7 @@ export default function ShortsPage() {
                   />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-extrabold text-foreground">{short.creator}</p>
-                    <p className="text-xs font-medium text-foreground/75">{short.handle}</p>
+                    {short.postType !== 'channel' && <p className="text-xs font-medium text-foreground/75">{short.handle}</p>}
                   </div>
                   <div className="ml-auto flex items-center gap-1">
                     <button

@@ -127,7 +127,7 @@ export default function ContentPage() {
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-extrabold text-card-foreground">{post.creatorName}</p>
             <p className="mt-0.5 truncate text-xs font-semibold text-muted-foreground">
-              {post.creatorHandle} · {post.category}
+              {post.post_type === 'channel' ? post.category : `${post.creatorHandle} · ${post.category}`}
             </p>
           </div>
           <div className="flex items-center gap-1">

@@ -69,6 +69,7 @@ type Post = {
   id: string;
   creator: string;
   handle: string;
+  postType?: 'personal' | 'channel';
   avatar: string;
   image: string;
   imageAlt: string;
@@ -260,6 +261,7 @@ function postFromStored(post: StoredPost): Post {
     id: post.id,
     creator: post.creatorName,
     handle: post.creatorHandle,
+    postType: post.post_type,
     avatar: post.creatorAvatar,
     image: resolvedMediaUrl || post.mediaUrl || post.mediaRef,
     imageAlt: post.mediaAlt,
@@ -1010,7 +1012,7 @@ export default function HomePage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-extrabold text-card-foreground">{post.creator}</p>
                   <p className="mt-0.5 truncate text-xs font-semibold text-muted-foreground">
-                    {post.handle} · {post.category}
+                    {post.postType === 'channel' ? post.category : `${post.handle} · ${post.category}`}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2 pl-2">

@@ -373,7 +373,7 @@ export default function CreatePage() {
         const profile = readStoredProfile(await window.genmb.kv.get(profileKey(user.id)));
         if (active) {
           setPublishingProfile(profile);
-          setPublishAsChannel(Boolean(profile?.channelName));
+          setPublishAsChannel((current) => current && Boolean(profile?.channelName));
         }
       } catch (error) {
         if (active) setChannelError(error instanceof Error ? error.message : "Could not load your channel.");
@@ -875,6 +875,7 @@ export default function CreatePage() {
         hashtags: hashtags.split(/\s+/).filter(Boolean),
         duration: videoDurationSeconds,
         channelId: publishAsChannel ? user.id : undefined,
+        post_type: publishAsChannel ? "channel" : "personal",
       });
       clearSelectedMedia();
       setPostError("");
@@ -924,6 +925,7 @@ export default function CreatePage() {
         videoDurationSeconds,
         idempotencyKey: postIdempotencyKeyRef.current ?? crypto.randomUUID(),
         channelId: publishAsChannel ? user.id : undefined,
+        post_type: publishAsChannel ? "channel" : "personal",
       });
       postIdempotencyKeyRef.current = post.id;
       setPostStatus("Post published to Home and your profile.");
@@ -1348,17 +1350,17 @@ export default function CreatePage() {
               className="mt-2 min-h-11 w-full rounded-xl border border-border bg-card px-3 text-sm text-card-foreground focus:border-primary focus:ring-2 focus:ring-ring"
             >
               <option value="personal">
-                {publishingProfile?.displayName || user.name || "Personal profile"} (personal)
+                Post as Personal — {publishingProfile?.displayName || user.name || "Personal profile"}
               </option>
               {publishingProfile?.channelName && (
-                <option value="channel">{publishingProfile.channelName} (channel)</option>
+                <option value="channel">Post as Channel — {publishingProfile.channelName}</option>
               )}
             </select>
             <p className="mt-2 text-xs text-muted-foreground">
               {channelLoading
                 ? "Loading channel…"
                 : publishingProfile?.channelName
-                  ? "Channel posts use your channel name and logo. Set a separate channel logo in Profile."
+                  ? "Channel posts show only your channel name and logo. Set a separate channel logo in Profile."
                   : "Add a Channel Name in Profile to publish as your channel."}
             </p>
             {channelError && (

@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { createPost, type PostFormat } from '../lib/posts'
 
 type UploadJob = { id: string; name: string; percent: number; status: 'uploading' | 'saving' | 'done' | 'error'; error?: string }
-type UploadInput = { file: File; format: PostFormat; title: string; caption: string; description: string; hashtags: string[]; duration?: number; channelId?: string }
+type UploadInput = { file: File; format: PostFormat; title: string; caption: string; description: string; hashtags: string[]; duration?: number; channelId?: string; post_type: 'personal' | 'channel' }
 type UploadContextValue = { jobs: UploadJob[]; start: (input: UploadInput) => void }
 const UploadContext = createContext<UploadContextValue | null>(null)
 
@@ -46,7 +46,7 @@ export default function BackgroundUpload({ children }: { children: ReactNode }) 
           title: input.title || input.file.name, caption: input.caption || input.title || input.file.name,
           description: input.description, hashtags: input.hashtags, visibility: 'Private',
           media: { ...uploaded, alt: input.title || input.file.name }, videoDurationSeconds: input.duration,
-          idempotencyKey: id, channelId: input.channelId,
+          idempotencyKey: id, channelId: input.channelId, post_type: input.post_type,
         })
         update(id, { status: 'done' })
       } catch (error) {

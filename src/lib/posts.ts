@@ -9,6 +9,7 @@ export type StoredPost = {
   contentType: 'post'
   creatorId: string
   channelId?: string
+  post_type: 'personal' | 'channel'
   creatorName: string
   creatorHandle: string
   creatorAvatar: string
@@ -96,6 +97,7 @@ export function readStoredPost(value: unknown): StoredPost | null {
   return {
     id: post.id, contentType: 'post', creatorId: post.creatorId,
     channelId: typeof post.channelId === 'string' && post.channelId === post.creatorId ? post.channelId : undefined,
+    post_type: post.post_type === 'channel' ? 'channel' : post.post_type === 'personal' ? 'personal' : post.channelId === post.creatorId ? 'channel' : 'personal',
     creatorName: post.creatorName,
     creatorHandle: post.creatorHandle, creatorAvatar: post.creatorAvatar,
     creatorProfile: {
@@ -130,8 +132,10 @@ export async function withCurrentCreatorProfiles(posts: StoredPost[]): Promise<S
   return posts.map((post) => {
     const profile = profiles.get(post.creatorId)
     if (!profile) return post
-    const isChannel = post.channelId === post.creatorId && Boolean(profile.channelName?.trim())
-    const avatar = (isChannel ? profile.channelAvatarUrl || profile.avatarUrl : profile.avatarUrl) || post.creatorAvatar
+    const isChannel = post.post_type === 'channel'
+    const avatar = isChannel
+      ? profile.channelAvatarUrl || `https://picsum.photos/seed/zivo-channel-${post.creatorId}/96/96`
+      : profile.avatarUrl || post.creatorAvatar
     const name = (isChannel ? profile.channelName : profile.displayName) || post.creatorName
     return { ...post, creatorName: name, creatorHandle: profile.username || post.creatorHandle, creatorAvatar: avatar,
       creatorProfile: { userId: post.creatorId, displayName: name, username: profile.username || post.creatorHandle, avatarUrl: avatar } }
@@ -215,9 +219,9 @@ export async function deleteCreatorPost({ creatorId, postId }: { creatorId: stri
   await window.genmb.kv.delete(`${postPrefix}${postId}`, postStorageOptions(post.visibility))
 }
 
-export async function createPost({ user, mediaType, format, title, caption, description, hashtags, sound, visibility, media, videoDurationSeconds, sourceVideoId, idempotencyKey, thumbnailUrl, channelId }: {
+export async function createPost({ user, mediaType, format, title, caption, description, hashtags, sound, visibility, media, videoDurationSeconds, sourceVideoId, idempotencyKey, thumbnailUrl, channelId, post_type }: {
   user: GenMBUser; mediaType: StoredPost['mediaType']; format: PostFormat; title?: string; caption: string; description?: string; hashtags: string[]; sound?: string; visibility: PostVisibility
-  media: { url: string; filename: string; contentType: string; size: number; alt: string }; videoDurationSeconds?: number; sourceVideoId?: string; idempotencyKey: string; thumbnailUrl?: string; channelId?: string
+  media: { url: string; filename: string; contentType: string; size: number; alt: string }; videoDurationSeconds?: number; sourceVideoId?: string; idempotencyKey: string; thumbnailUrl?: string; channelId?: string; post_type: 'personal' | 'channel'
 }): Promise<StoredPost> {
   await window.genmb.auth.ready()
   const sessionUser = window.genmb.auth.getUser()
@@ -234,15 +238,17 @@ export async function createPost({ user, mediaType, format, title, caption, desc
   if (existing) return existing
   if (sourceVideoId?.trim() && (format !== 'short' || mediaType !== 'video')) throw new Error('Only a video Short can be linked to a source video.')
   const profile = readStoredProfile(await window.genmb.kv.get(profileKey(sessionUser.id)))
-  if (channelId && (channelId !== sessionUser.id || !profile?.channelName?.trim())) throw new Error('This channel is not available on your account. Update your profile and try again.')
+  if (post_type !== 'personal' && post_type !== 'channel') throw new Error('Choose a publishing identity.')
+  if (post_type === 'channel' && (channelId !== sessionUser.id || !profile?.channelName?.trim())) throw new Error('This channel is not available on your account. Update your profile and try again.')
+  if (post_type === 'personal' && channelId) throw new Error('Personal posts cannot be linked to a channel.')
   const fallbackName = sessionUser.name.trim() || sessionUser.email.split('@')[0] || 'ZIVO creator'
-  const creatorName = (channelId ? profile?.channelName : profile?.displayName)?.trim() || fallbackName
+  const creatorName = (post_type === 'channel' ? profile?.channelName : profile?.displayName)?.trim() || fallbackName
   const username = profile?.username.trim().replace(/^@/, '') || sessionUser.email.split('@')[0].replace(/[^a-zA-Z0-9_.]/g, '') || 'zivo'
-  const creatorAvatar = (channelId ? profile?.channelAvatarUrl || profile?.avatarUrl : profile?.avatarUrl) || sessionUser.picture || `https://picsum.photos/seed/zivo-post-${sessionUser.id}-avatar/96/96`
+  const creatorAvatar = post_type === 'channel' ? profile?.channelAvatarUrl || `https://picsum.photos/seed/zivo-channel-${sessionUser.id}/96/96` : profile?.avatarUrl || sessionUser.picture || `https://picsum.photos/seed/zivo-post-${sessionUser.id}-avatar/96/96`
   const durationSeconds = typeof videoDurationSeconds === 'number' && Number.isFinite(videoDurationSeconds) && videoDurationSeconds >= 0 ? Math.floor(videoDurationSeconds) : undefined
   const details = format === 'photo' ? { duration: 'Photo', category: 'Photo moment' } : format === 'short' ? { duration: formatVideoDuration(durationSeconds) === 'Video' ? 'Short video' : formatVideoDuration(durationSeconds), category: 'Short video' } : { duration: formatVideoDuration(durationSeconds), category: 'Long video' }
   const post: StoredPost = {
-    id: crypto.randomUUID(), contentType: 'post', creatorId: sessionUser.id, channelId, creatorName, creatorHandle: `@${username}`, creatorAvatar,
+    id: crypto.randomUUID(), contentType: 'post', creatorId: sessionUser.id, channelId: post_type === 'channel' ? channelId : undefined, post_type, creatorName, creatorHandle: `@${username}`, creatorAvatar,
     creatorProfile: { userId: sessionUser.id, displayName: creatorName, username: `@${username}`, avatarUrl: creatorAvatar },
     mediaType, format, mediaRef: media.url, mediaUrl: media.url, mediaAlt: media.alt.trim() || `${creatorName}'s post`, thumbnailUrl, duration: details.duration,
     videoDurationSeconds: format === 'photo' ? undefined : durationSeconds, category: details.category, title: safeTitle || undefined,
