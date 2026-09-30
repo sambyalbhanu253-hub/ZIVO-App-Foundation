@@ -19,30 +19,30 @@
 
 :root {
   font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  color-scheme: dark;
-  --background: #050505;
+  color-scheme: light;
+  --background: #ffffff;
   --home-background: var(--background);
-  --foreground: oklch(0.97 0.01 285);
-  --card: oklch(0.18 0.014 280);
-  --card-foreground: oklch(0.97 0.01 285);
-  --primary: oklch(0.74 0.17 326);
-  --primary-foreground: #050505;
-  --muted: oklch(0.24 0.016 280);
-  --muted-foreground: oklch(0.75 0.015 280);
-  --border: oklch(0.32 0.017 280);
-  --accent: oklch(0.27 0.045 326);
-  --ring: oklch(0.74 0.17 326);
-  --shadow-strong: oklch(0 0 0 / 0.3);
-  --shadow-float: oklch(0 0 0 / 0.45);
-  --glow-primary: oklch(0.65 0.18 325 / 0.10);
-  --glow-secondary: oklch(0.60 0.12 250 / 0.08);
+  --foreground: oklch(0.20 0.018 280);
+  --card: #ffffff;
+  --card-foreground: oklch(0.20 0.018 280);
+  --primary: oklch(0.48 0.20 326);
+  --primary-foreground: #ffffff;
+  --muted: oklch(0.96 0.008 280);
+  --muted-foreground: oklch(0.48 0.018 280);
+  --border: oklch(0.89 0.012 280);
+  --accent: oklch(0.96 0.025 326);
+  --ring: oklch(0.48 0.20 326);
+  --shadow-strong: oklch(0 0 0 / 0.08);
+  --shadow-float: oklch(0 0 0 / 0.12);
+  --glow-primary: oklch(0.65 0.18 325 / 0.05);
+  --glow-secondary: oklch(0.60 0.12 250 / 0.04);
   --story-pink: oklch(0.72 0.24 350);
   --story-orange: oklch(0.79 0.18 55);
   --story-violet: oklch(0.66 0.23 300);
   --story-cyan: oklch(0.79 0.15 205);
-  --glass-edge: color-mix(in oklab, var(--foreground) 15%, transparent);
-  --glass-surface: color-mix(in oklab, var(--card) 94%, transparent);
-  --glass-highlight: color-mix(in oklab, var(--foreground) 7%, transparent);
+  --glass-edge: var(--border);
+  --glass-surface: var(--card);
+  --glass-highlight: color-mix(in oklab, var(--foreground) 3%, transparent);
   --glass-shadow: color-mix(in oklab, var(--primary) 10%, transparent);
   --story-gradient: conic-gradient(
     from 20deg,
@@ -106,7 +106,7 @@ button:not(:disabled):active {
 }
 .app-frame {
   min-height: 100dvh;
-  background: color-mix(in oklab, var(--background) 88%, transparent);
+  background: var(--background);
 }
 .home-frame {
   background: var(--home-background);
@@ -348,6 +348,7 @@ img[data-genmb-img*="avatar"],
 }
 .zivo-media-overlay,
 .zivo-story-viewer {
+  color-scheme: dark;
   --background: oklch(0.13 0.018 275);
   --foreground: oklch(0.97 0.01 285);
   --card: oklch(0.19 0.024 278);
