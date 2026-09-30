@@ -4,7 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content="ZIVO is a premium, mobile-first social video space for discovering what moves culture." />
-    <meta name="theme-color" content="#14121b" />
+    <meta name="theme-color" content="#050505" />
+    <style>
+      html, body, #root { min-height: 100%; background: #050505; }
+      html { color-scheme: dark; }
+      body { margin: 0; }
+    </style>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -3156,12 +3161,7 @@ window.__genmbBindSdk(window.genmb.rbac);
     <!-- GenMB Capabilities END -->
   </head>
   <body>
-    <div id="root">
-      <main aria-label="ZIVO social video">
-        <h1>ZIVO — Premium social video, built for the moment.</h1>
-        <p>Discover short-form culture and the next ideas worth watching.</p>
-      </main>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

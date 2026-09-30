@@ -42,11 +42,10 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           if (!nextUser) window.genmb.rbac.clearRole()
           if (mounted) setUser(nextUser)
         })
-        try {
-          await window.genmb.rbac.ready()
-        } catch (roleError) {
-          console.error('ZIVO role initialization failed:', roleError)
-        }
+        // Role resolution continues independently; the public feed should not wait for it.
+        void window.genmb.rbac.ready().catch((roleError: unknown) => {
+          if (mounted) setError(roleError instanceof Error ? roleError.message : 'We could not check your account permissions.')
+        })
       } catch (caughtError) {
         if (mounted) setError(caughtError instanceof Error ? caughtError.message : 'We could not check your ZIVO session. Please try again.')
       } finally {
