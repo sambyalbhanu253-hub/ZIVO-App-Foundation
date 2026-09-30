@@ -11,9 +11,11 @@ export default function EditVideoDetailsDialog({ post, creatorId, onClose, onSav
   const [hashtags, setHashtags] = useState(post.hashtags.join(" "));
   const [visibility, setVisibility] = useState(post.visibility);
   const [thumbnailUrl, setThumbnailUrl] = useState(post.thumbnailUrl || "");
-  const [frames, setFrames] = useState<string[]>([]);
-  const [framesLoading, setFramesLoading] = useState(false);
-  const [selectedFrame, setSelectedFrame] = useState<number | null>(null);
+  const [duration, setDuration] = useState(0);
+  const [position, setPosition] = useState(0);
+  const [frameReady, setFrameReady] = useState(false);
+  const [capturedFrame, setCapturedFrame] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [thumbnailUploading, setThumbnailUploading] = useState(false);
   const uploaderRef = useRef<HTMLElement>(null);
   const [saving, setSaving] = useState(false);
@@ -29,7 +31,7 @@ export default function EditVideoDetailsDialog({ post, creatorId, onClose, onSav
       const url = detail?.files?.[0]?.url;
       if (url) {
         setThumbnailUrl(url);
-        setSelectedFrame(null);
+        setCapturedFrame(null);
         setThumbnailUploading(false);
         setError("");
       } else {
@@ -55,74 +57,22 @@ export default function EditVideoDetailsDialog({ post, creatorId, onClose, onSav
     };
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    const video = document.createElement("video");
-    video.crossOrigin = "anonymous";
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = "auto";
-    const waitFor = (name: string) =>
-      new Promise<void>((resolve, reject) => {
-        const cleanup = () => {
-          window.clearTimeout(timer);
-          video.removeEventListener(name, ready);
-          video.removeEventListener("error", failed);
-        };
-        const ready = () => {
-          cleanup();
-          resolve();
-        };
-        const failed = () => {
-          cleanup();
-          reject(new Error("This saved video cannot be decoded for frame selection. You can upload an image instead."));
-        };
-        const timer = window.setTimeout(() => {
-          cleanup();
-          reject(new Error("Frame extraction timed out. You can upload an image instead."));
-        }, 12000);
-        video.addEventListener(name, ready, { once: true });
-        video.addEventListener("error", failed, { once: true });
-      });
-    setFramesLoading(true);
-    void (async () => {
-      try {
-        const metadata = waitFor("loadedmetadata");
-        video.src = post.mediaUrl;
-        video.load();
-        await metadata;
-        if (!Number.isFinite(video.duration) || video.duration <= 0 || !video.videoWidth || !video.videoHeight)
-          throw new Error("No seekable frames are available. Upload an image instead.");
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.min(320, video.videoWidth);
-        canvas.height = Math.round((canvas.width * video.videoHeight) / video.videoWidth);
-        const context = canvas.getContext("2d");
-        if (!context) throw new Error("Your browser cannot capture video frames. Upload an image instead.");
-        const results: string[] = [];
-        for (const fraction of [0.15, 0.5, 0.85]) {
-          const seeked = waitFor("seeked");
-          video.currentTime = Math.min(video.duration - 0.001, video.duration * fraction);
-          await seeked;
-          context.drawImage(video, 0, 0, canvas.width, canvas.height);
-          results.push(canvas.toDataURL("image/jpeg", 0.76));
-        }
-        if (active) setFrames(results);
-      } catch (caught) {
-        if (active) setError(caught instanceof Error ? caught.message : "Unable to load thumbnail frames.");
-      } finally {
-        if (active) setFramesLoading(false);
-        video.pause();
-        video.removeAttribute("src");
-        video.load();
-      }
-    })();
-    return () => {
-      active = false;
-      video.pause();
-      video.removeAttribute("src");
-      video.load();
-    };
-  }, [post.mediaUrl]);
+  const captureFrame = () => {
+    const video = videoRef.current;
+    if (!video || !frameReady || !video.videoWidth || !video.videoHeight) return;
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.min(720, video.videoWidth);
+      canvas.height = Math.round(canvas.width * video.videoHeight / video.videoWidth);
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Your browser cannot capture this frame. Upload an image instead.");
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      setCapturedFrame(canvas.toDataURL("image/jpeg", 0.85));
+      setError("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to capture this frame. Upload an image instead.");
+    }
+  };
 
   useEffect(
     () => () => {
@@ -172,8 +122,8 @@ export default function EditVideoDetailsDialog({ post, creatorId, onClose, onSav
     setError("");
     try {
       let savedThumbnail = thumbnailUrl || undefined;
-      if (selectedFrame !== null) {
-        const response = await fetch(frames[selectedFrame]);
+      if (capturedFrame) {
+        const response = await fetch(capturedFrame);
         const blob = await response.blob();
         const file = new File([blob], `zivo-thumbnail-${post.id}.jpg`, { type: "image/jpeg" });
         const uploaded = await window.genmb.storage.upload(file, { folder: "zivo-thumbnails" });
@@ -232,38 +182,60 @@ export default function EditVideoDetailsDialog({ post, creatorId, onClose, onSav
             <p className="mt-1 text-xs text-muted-foreground">
               Choose a frame from your saved video or upload a custom image. Save changes to apply it.
             </p>
-            {(selectedFrame !== null || thumbnailUrl) && (
+            <video
+              ref={videoRef}
+              src={post.mediaUrl}
+              crossOrigin="anonymous"
+              preload="metadata"
+              muted
+              playsInline
+              aria-label="Video frame preview"
+              className={`mx-auto mt-3 max-h-64 w-full rounded-lg bg-muted ${post.format === "short" ? "aspect-[9/16] object-contain" : "aspect-video object-contain"}`}
+              onLoadedMetadata={(event) => {
+                const video = event.currentTarget;
+                if (Number.isFinite(video.duration) && video.duration > 0) {
+                  setDuration(video.duration);
+                  setFrameReady(video.readyState >= 2);
+                } else setError("This video is not seekable. Upload a custom thumbnail instead.");
+              }}
+              onLoadedData={() => setFrameReady(true)}
+              onSeeking={() => setFrameReady(false)}
+              onSeeked={(event) => { setPosition(event.currentTarget.currentTime); setFrameReady(true); }}
+              onError={() => setError("Video preview could not load. You can upload a custom thumbnail instead.")}
+            />
+            <label htmlFor="video-thumbnail-position" className="mt-3 block text-xs font-bold text-foreground">
+              Choose any moment · {position.toFixed(1)}s / {duration.toFixed(1)}s
+            </label>
+            <input
+              id="video-thumbnail-position"
+              type="range"
+              min={0}
+              max={duration || 1}
+              step={0.01}
+              value={position}
+              disabled={!duration || saving || thumbnailUploading}
+              onChange={(event) => {
+                const time = Number(event.target.value);
+                setPosition(time);
+                setFrameReady(false);
+                if (videoRef.current) videoRef.current.currentTime = time;
+              }}
+              className="mt-2 w-full accent-primary disabled:opacity-50"
+            />
+            <button
+              type="button"
+              disabled={!frameReady || saving || thumbnailUploading}
+              onClick={captureFrame}
+              className="mt-2 min-h-11 w-full rounded-xl bg-primary px-3 text-sm font-bold text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+            >
+              Set current frame as thumbnail
+            </button>
+            {(capturedFrame || thumbnailUrl) && (
               <img
-                src={selectedFrame !== null ? frames[selectedFrame] : thumbnailUrl}
+                src={capturedFrame || thumbnailUrl}
                 alt="Selected video thumbnail"
-                className="mt-3 aspect-video w-full rounded-lg object-cover"
+                className={`mx-auto mt-3 max-h-64 w-full rounded-lg bg-muted ${post.format === "short" ? "aspect-[9/16]" : "aspect-video"} object-contain`}
               />
-            )}
-            {framesLoading && (
-              <p role="status" className="mt-3 text-xs text-muted-foreground">
-                Extracting frames from saved video…
-              </p>
-            )}
-            {frames.length > 0 && (
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {frames.map((frame, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    disabled={saving || thumbnailUploading}
-                    onClick={() => {
-                      setSelectedFrame(index);
-                      setError("");
-                    }}
-                    aria-label={`Select thumbnail frame ${index + 1}`}
-                    aria-pressed={selectedFrame === index}
-                    className={`overflow-hidden rounded-lg border-2 ${selectedFrame === index ? "border-primary" : "border-border"} focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50`}
-                  >
-                    <img src={frame} alt={`Frame ${index + 1}`} className="aspect-video w-full object-cover" />
-                    <span className="text-xs text-foreground">Frame {index + 1}</span>
-                  </button>
-                ))}
-              </div>
             )}
             <div className="mt-3">
               <genmb-uploader
@@ -271,7 +243,7 @@ export default function EditVideoDetailsDialog({ post, creatorId, onClose, onSav
                 accept="image/*"
                 folder="zivo-thumbnails"
                 max-size="52428800"
-                theme="dark"
+                theme="light"
                 label="Upload custom thumbnail"
               />
             </div>
