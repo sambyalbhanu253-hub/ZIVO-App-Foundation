@@ -1,36 +1,29 @@
 {
-  "name": "zivo-social-video-foundation",
-  "private": true,
-  "version": "0.0.0",
+  "name": "zivo-app-foundation",
+  "version": "1.0.0",
+  "description": "A dark, mobile-first ZIVO social video app shell with a branded header, responsive bottom navigation, and polished placeholder screens for Home, Shorts, Create, Discover, and Profile.",
   "type": "module",
   "scripts": {
+    "start": "npm run dev",
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "android:add": "npx cap add android",
-    "android:sync": "npm run build && npx cap sync android",
-    "android:apk:debug": "npm run android:sync && cd android && ./gradlew assembleDebug",
-    "android:apk:release": "npm run android:sync && cd android && ./gradlew assembleRelease",
-    "start": "npm run dev"
+    "build": "vite build"
   },
   "dependencies": {
-    "@capacitor/core": "^6.1.2",
-    "@vitejs/plugin-react": "latest",
-    "clsx": "latest",
-    "lucide-react": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "react-router-dom": "latest",
-    "tailwind-merge": "latest",
-    "tailwindcss": "latest",
-    "@tailwindcss/vite": "latest",
-    "typescript": "latest",
-    "vite": "latest"
+    "@capacitor/cli": "latest",
+    "clsx": "^2.1.0",
+    "lucide-react": "0.577.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-router-dom": "^7.13.0",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
-    "@capacitor/android": "^6.1.2",
-    "@capacitor/cli": "^6.1.2",
+    "@tailwindcss/vite": "^4.2.0",
     "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0"
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^6.0.0",
+    "tailwindcss": "^4.2.0",
+    "typescript": "^5.9.0",
+    "vite": "^8.0.0"
   }
 }
