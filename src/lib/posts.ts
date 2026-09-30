@@ -40,6 +40,7 @@ export const postPrefix = 'zivo:post:'
 const publishRequestPrefix = 'zivo:publish-request:'
 export const localPostPublishedEvent = 'zivo:post-published'
 export const localPostUpdatedEvent = 'zivo:post-updated'
+export const localPostDeletedEvent = 'zivo:post-deleted'
 
 const isVisibility = (value: unknown): value is PostVisibility => value === 'Public' || value === 'Unlisted' || value === 'Followers' || value === 'Private'
 const postStorageOptions = (visibility: PostVisibility) => visibility === 'Public' || visibility === 'Unlisted' ? undefined : { scope: 'user' as const }
@@ -216,7 +217,9 @@ export async function setCreatorPostFeatured({ creatorId, postId, featured }: { 
 
 export async function deleteCreatorPost({ creatorId, postId }: { creatorId: string; postId: string }) {
   const post = await requirePostOwner(creatorId, postId)
-  await window.genmb.kv.delete(`${postPrefix}${postId}`, postStorageOptions(post.visibility))
+  const result = await window.genmb.kv.delete(`${postPrefix}${postId}`, postStorageOptions(post.visibility))
+  if (!result.deleted) throw new Error('The post could not be deleted. Please refresh and try again.')
+  window.dispatchEvent(new CustomEvent(localPostDeletedEvent, { detail: postId }))
 }
 
 export async function createPost({ user, mediaType, format, title, caption, description, hashtags, sound, visibility, media, videoDurationSeconds, sourceVideoId, idempotencyKey, thumbnailUrl, channelId, post_type }: {

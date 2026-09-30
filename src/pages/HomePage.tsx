@@ -20,6 +20,7 @@ import useVideoEngagement from "../hooks/useVideoEngagement";
 import usePersistentLikes from "../hooks/usePersistentLikes";
 import useSafetyRelationships from "../hooks/useSafetyRelationships";
 import SafetyMenu from "../components/SafetyMenu";
+import CreatorPostMenu from "../components/CreatorPostMenu";
 import { loadCommentCount } from "../hooks/usePersistentComments";
 import CommentThread from "../components/CommentThread";
 import ContentShareActions from "../components/ContentShareActions";
@@ -27,7 +28,7 @@ import { ZivoInlineLoader } from "../components/ZivoState";
 import { useAuth } from "../auth/AuthProvider";
 import { actorFromUser, createNotification } from "../lib/notifications";
 import { loadLiveSessions, type ZivoLiveSession } from "../lib/live";
-import { loadPosts, localPostPublishedEvent, localPostUpdatedEvent, type StoredPost } from "../lib/posts";
+import { loadPosts, localPostPublishedEvent, localPostUpdatedEvent, localPostDeletedEvent, type StoredPost } from "../lib/posts";
 import { profileUpdatedEvent } from "../lib/profiles";
 import { loadActiveStories, type StoredStory } from "../lib/stories";
 import { cn } from "../lib/utils";
@@ -430,9 +431,12 @@ export default function HomePage() {
           : [postFromStored(post), ...current]
         : current.filter((item) => item.id !== post.id));
     };
+    const onPostDeleted = (event: Event) => setPersistedPosts((current) => current.filter((item) => item.id !== (event as CustomEvent<string>).detail));
+    window.addEventListener(localPostDeletedEvent, onPostDeleted);
     window.addEventListener(localPostPublishedEvent, onPostPublished);
     window.addEventListener(localPostUpdatedEvent, onPostUpdated);
     return () => {
+      window.removeEventListener(localPostDeletedEvent, onPostDeleted);
       window.removeEventListener(localPostPublishedEvent, onPostPublished);
       window.removeEventListener(localPostUpdatedEvent, onPostUpdated);
     };
@@ -1030,6 +1034,7 @@ export default function HomePage() {
                   >
                     {updatingCreatorId === post.ownerId ? "Saving…" : followed ? "Following" : "Follow"}
                   </button>
+                  <CreatorPostMenu postId={post.id} creatorId={post.ownerId} title={post.title || post.caption || 'Post'} />
                   <SafetyMenu targetType={post.isLongVideo ? "video" : post.isVideo ? "short" : "post"} targetId={post.id} targetOwnerId={post.ownerId} targetName={post.creator} onSafetyChange={() => void reloadSafety()} />
                 </div>
               </div>

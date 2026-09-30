@@ -34,6 +34,7 @@ import {
   loadPost,
   loadCreatorPosts,
   localPostPublishedEvent,
+  localPostDeletedEvent,
   setCreatorPostFeatured,
   setCreatorPostVisibility,
   type PostVisibility,
@@ -233,7 +234,6 @@ export default function ProfilePage() {
         );
         setMedia(
           [...postsById.values()]
-            .filter((post) => post.format === "short" || (post.format === "video" && post.mediaType === "video"))
             .sort(
               (first, second) =>
                 Number(Boolean(second.featured)) - Number(Boolean(first.featured)) ||
@@ -261,12 +261,16 @@ export default function ProfilePage() {
     const onLocalPostPublished = (event: Event) => {
       const post = (event as CustomEvent<StoredPost>).detail;
       if (!post || post.creatorId !== profileId || (!isOwnProfile && post.visibility !== "Public")) return;
-      if (post.format !== "short" && !(post.format === "video" && post.mediaType === "video")) return;
       const nextMedia = profileMediaFromPost(post);
       setMedia((current) => [nextMedia, ...current.filter((item) => item.id !== post.id)]);
     };
+    const onDeleted = (event: Event) => setMedia((current) => current.filter((item) => item.id !== (event as CustomEvent<string>).detail));
     window.addEventListener(localPostPublishedEvent, onLocalPostPublished);
-    return () => window.removeEventListener(localPostPublishedEvent, onLocalPostPublished);
+    window.addEventListener(localPostDeletedEvent, onDeleted);
+    return () => {
+      window.removeEventListener(localPostPublishedEvent, onLocalPostPublished);
+      window.removeEventListener(localPostDeletedEvent, onDeleted);
+    };
   }, [isOwnProfile, profileId]);
 
   const closeDeleteDialog = () => {
@@ -305,7 +309,7 @@ export default function ProfilePage() {
       await deleteCreatorPost({ creatorId: user.id, postId: deleteTarget.id });
       setMedia((current) => current.filter((item) => item.id !== deleteTarget.id));
       setDeleteTarget(null);
-      setStatus("Video deleted from your creator archive.");
+      setStatus("Post deleted from your creator archive.");
       deleteTriggerRef.current?.focus();
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to delete this video.");
@@ -990,7 +994,7 @@ export default function ProfilePage() {
               description={
                 activeTab === "saved"
                   ? "Bookmark posts or shorts from their save icon to build your collection."
-                  : "Published videos and shorts will appear here."
+                  : "Published photos, videos and Shorts will appear here."
               }
             />
           ) : (
@@ -1249,7 +1253,7 @@ export default function ProfilePage() {
             className="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-float"
           >
             <h2 id="delete-video-title" className="text-xl font-extrabold text-card-foreground">
-              Delete video?
+              Delete post?
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
               Delete “{deleteTarget.title}” from your creator archive? This cannot be undone.
@@ -1279,7 +1283,7 @@ export default function ProfilePage() {
                 ) : (
                   <Trash2 size={16} aria-hidden="true" />
                 )}
-                {isDeleting ? "Deleting…" : "Delete video"}
+                {isDeleting ? "Deleting…" : "Delete post"}
               </button>
             </div>
           </div>

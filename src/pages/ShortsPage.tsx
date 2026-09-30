@@ -7,12 +7,13 @@ import useVideoEngagement from "../hooks/useVideoEngagement";
 import usePersistentLikes from "../hooks/usePersistentLikes";
 import useSafetyRelationships from "../hooks/useSafetyRelationships";
 import SafetyMenu from "../components/SafetyMenu";
+import CreatorPostMenu from "../components/CreatorPostMenu";
 import CommentThread from "../components/CommentThread";
 import ContentShareActions from "../components/ContentShareActions";
 import { ZivoEmptyState, ZivoErrorState, ZivoLoadingState } from "../components/ZivoState";
 import { useAuth } from "../auth/AuthProvider";
 import { actorFromUser, createNotification } from "../lib/notifications";
-import { loadPost, loadPosts, localPostUpdatedEvent, type StoredPost } from "../lib/posts";
+import { loadPost, loadPosts, localPostUpdatedEvent, localPostDeletedEvent, type StoredPost } from "../lib/posts";
 import { profileUpdatedEvent } from "../lib/profiles";
 import { cn } from "../lib/utils";
 
@@ -226,8 +227,13 @@ export default function ShortsPage() {
           : [updated, ...current];
       });
     };
+    const onDeleted = (event: Event) => setPersistedShorts((current) => current.filter((item) => item.id !== (event as CustomEvent<string>).detail));
+    window.addEventListener(localPostDeletedEvent, onDeleted);
     window.addEventListener(localPostUpdatedEvent, onPostUpdated);
-    return () => window.removeEventListener(localPostUpdatedEvent, onPostUpdated);
+    return () => {
+      window.removeEventListener(localPostDeletedEvent, onDeleted);
+      window.removeEventListener(localPostUpdatedEvent, onPostUpdated);
+    };
   }, [contentId]);
 
   const updateShortCommentCount = useCallback((shortId: string, count: number) => {
@@ -446,6 +452,7 @@ export default function ShortsPage() {
                     >
                       {updatingCreatorId === short.ownerId ? "Saving…" : isFollowing ? "Following" : "Follow"}
                     </button>
+                    <CreatorPostMenu postId={short.id} creatorId={short.ownerId} title={short.title || short.caption || 'Short'} />
                     <SafetyMenu targetType="short" targetId={short.id} targetOwnerId={short.ownerId} targetName={short.creator} onSafetyChange={() => void reloadSafety()} />
                   </div>
                 </div>

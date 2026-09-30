@@ -1,10 +1,11 @@
 import { ArrowLeft, Clapperboard, Languages, Play, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import CommentThread from "../components/CommentThread";
 import ContentShareActions from "../components/ContentShareActions";
 import SafetyMenu from "../components/SafetyMenu";
+import CreatorPostMenu from "../components/CreatorPostMenu";
 import LongFormVideoPlayer from "../components/LongFormVideoPlayer";
 import SmartShortCreator from "../components/SmartShortCreator";
 import { ZivoErrorState, ZivoLoadingState } from "../components/ZivoState";
@@ -20,6 +21,7 @@ import { loadPost, type StoredPost } from "../lib/posts";
 export default function ContentPage() {
   const { contentId = "" } = useParams<{ contentId: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [post, setPost] = useState<StoredPost | null>(null);
   const [languages, setLanguages] = useState<ZivoContentLanguageSettings | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState("original");
@@ -138,6 +140,7 @@ export default function ContentPage() {
               creatorName={post.creatorName}
               isPublic={post.visibility === "Public"}
             />
+            <CreatorPostMenu postId={post.id} creatorId={post.creatorId} title={post.title || post.caption || 'Post'} onDeleted={() => navigate('/')} />
             <SafetyMenu targetType={post.format === "video" ? "video" : "post"} targetId={post.id} targetOwnerId={post.creatorId} targetName={post.creatorName} />
           </div>
         </div>
