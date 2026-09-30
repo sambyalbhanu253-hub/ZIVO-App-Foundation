@@ -24,7 +24,6 @@ import CreatorPostMenu from "../components/CreatorPostMenu";
 import { loadCommentCount } from "../hooks/usePersistentComments";
 import CommentThread from "../components/CommentThread";
 import ContentShareActions from "../components/ContentShareActions";
-import { ZivoInlineLoader } from "../components/ZivoState";
 import { useAuth } from "../auth/AuthProvider";
 import { actorFromUser, createNotification } from "../lib/notifications";
 import { loadLiveSessions, type ZivoLiveSession } from "../lib/live";
@@ -782,7 +781,7 @@ export default function HomePage() {
               </h2>
             </div>
             <span className="text-xs font-bold text-muted-foreground">
-              {isStoriesLoading ? "Loading moments" : "24h moments"}
+              {isStoriesLoading ? "" : "24h moments"}
             </span>
           </div>
           {storiesError && (
@@ -809,11 +808,6 @@ export default function HomePage() {
               </span>
               <span className="w-full truncate text-center text-xs font-bold text-foreground">Your story</span>
             </Link>
-            {isStoriesLoading ? (
-              <div className="flex w-[104px] shrink-0 items-center pt-5 text-xs font-semibold text-muted-foreground">
-                <ZivoInlineLoader label="Loading stories…" />
-              </div>
-            ) : null}
             {stories.map((story, index) => {
               const seen = seenStories.includes(story.id);
               return (
@@ -978,11 +972,6 @@ export default function HomePage() {
           >
             {followError || engagementError || likesError || `Your saved posts could not load: ${postsError}`}
           </p>
-        )}
-        {isPostsLoading && (
-          <div className="flex justify-center py-1">
-            <ZivoInlineLoader label="Loading your saved posts…" />
-          </div>
         )}
         {!isPostsLoading && activeTab === "following" && visiblePosts.length === 0 && (
           <div className="rounded-2xl border border-border bg-card px-4 py-6 text-center shadow-premium">
