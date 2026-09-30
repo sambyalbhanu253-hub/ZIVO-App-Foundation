@@ -1,0 +1,503 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-ring: var(--ring);
+  --shadow-premium: 0 16px 38px var(--shadow-strong);
+  --shadow-float: 0 20px 48px var(--shadow-float);
+}
+
+:root {
+  font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+  --background: oklch(1 0 0);
+  --home-background: var(--background);
+  --foreground: oklch(0.21 0.025 275);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.025 275);
+  --primary: oklch(0.49 0.19 326);
+  --primary-foreground: oklch(1 0 0);
+  --muted: oklch(0.96 0.009 280);
+  --muted-foreground: oklch(0.43 0.025 280);
+  --border: oklch(0.89 0.012 280);
+  --accent: oklch(0.95 0.027 326);
+  --ring: oklch(0.52 0.18 326);
+  --shadow-strong: oklch(0.25 0.02 275 / 0.09);
+  --shadow-float: oklch(0.25 0.02 275 / 0.14);
+  --glow-primary: oklch(0.75 0.12 325 / 0.10);
+  --glow-secondary: oklch(0.77 0.08 250 / 0.08);
+  --story-pink: oklch(0.72 0.24 350);
+  --story-orange: oklch(0.79 0.18 55);
+  --story-violet: oklch(0.66 0.23 300);
+  --story-cyan: oklch(0.79 0.15 205);
+  --glass-edge: color-mix(in oklab, var(--foreground) 15%, transparent);
+  --glass-surface: color-mix(in oklab, var(--card) 94%, transparent);
+  --glass-highlight: color-mix(in oklab, var(--foreground) 7%, transparent);
+  --glass-shadow: color-mix(in oklab, var(--primary) 10%, transparent);
+  --story-gradient: conic-gradient(
+    from 20deg,
+    var(--story-pink),
+    var(--story-orange),
+    var(--story-cyan),
+    var(--story-violet),
+    var(--story-pink)
+  );
+  --story-gradient-seen: conic-gradient(
+    from 20deg,
+    color-mix(in oklab, var(--story-pink) 42%, var(--muted)),
+    color-mix(in oklab, var(--story-orange) 42%, var(--muted)),
+    color-mix(in oklab, var(--story-cyan) 42%, var(--muted)),
+    color-mix(in oklab, var(--story-violet) 42%, var(--muted))
+  );
+  --zivo-radius-sm: 0.75rem;
+  --zivo-radius-md: 1rem;
+  --zivo-radius-lg: 1.25rem;
+  --zivo-radius-xl: 1.65rem;
+  --zivo-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+html {
+  background: var(--background);
+}
+body {
+  min-width: 320px;
+  min-height: 100dvh;
+  margin: 0;
+  background: radial-gradient(circle at 12% -10%, var(--glow-primary), transparent 28rem),
+    radial-gradient(circle at 92% 18%, var(--glow-secondary), transparent 23rem), var(--background);
+  color: var(--foreground);
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+button:not(:disabled),
+a {
+  touch-action: manipulation;
+}
+button:not(:disabled):active {
+  transform: scale(0.975);
+}
+::selection {
+  background: color-mix(in oklab, var(--primary) 55%, transparent);
+  color: var(--foreground);
+}
+#root {
+  min-height: 100dvh;
+}
+.app-frame {
+  min-height: 100dvh;
+  background: color-mix(in oklab, var(--background) 88%, transparent);
+}
+.home-frame {
+  background: var(--home-background);
+}
+.shorts-frame {
+  background: var(--background);
+}
+.shorts-frame .page-content {
+  width: 100%;
+  padding: 0;
+}
+/* Keep the video viewport clear even if navigation is accidentally mounted by a nested layout. */
+.shorts-frame nav[aria-label="Primary navigation"] {
+  display: none;
+}
+.shorts-share-actions {
+  gap: 0.5rem;
+}
+.home-frame .home-feed-tabs {
+  position: sticky;
+  top: var(--home-header-height, calc(env(safe-area-inset-top) + 4.25rem));
+  background: var(--home-background);
+}
+.home-frame .home-header {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+  background: var(--home-background);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--foreground) 4%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.home-pull-content { position: relative; transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1); }
+.home-pull-content.is-pulling { transition: none; }
+.home-pull-indicator { pointer-events: none; }
+.home-frame .zivo-glass-panel {
+  background: var(--card);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.home-frame .home-header .home-header-action {
+  border-color: color-mix(in srgb, var(--foreground) 12%, transparent);
+  background: color-mix(in srgb, var(--card) 52%, transparent);
+  box-shadow: none;
+}
+.home-frame .home-header-tagline {
+  display: none;
+}
+.home-frame .home-header .group > span:first-child {
+  box-shadow: none;
+}
+.auth-frame {
+  min-height: 100dvh;
+  background: radial-gradient(circle at 84% 5%, var(--glow-primary), transparent 19rem),
+    radial-gradient(circle at 8% 50%, var(--glow-secondary), transparent 18rem), var(--background);
+}
+.page-content {
+  width: min(100%, 28rem);
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem calc(env(safe-area-inset-bottom) + 7rem);
+}
+.create-page-content {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 9rem);
+}
+.zivo-screen {
+  animation: zivo-screen-in 240ms var(--zivo-ease) both;
+}
+.zivo-icon-button {
+  border-radius: var(--zivo-radius-md);
+  transition:
+    transform 180ms var(--zivo-ease),
+    background-color 180ms var(--zivo-ease),
+    border-color 180ms var(--zivo-ease),
+    color 180ms var(--zivo-ease),
+    box-shadow 180ms var(--zivo-ease);
+}
+.zivo-elevated-surface {
+  box-shadow:
+    0 10px 28px var(--shadow-strong),
+    inset 0 1px 0 oklch(1 0 0 / 0.035);
+}
+.zivo-scroll-row {
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 1.25rem;
+  scrollbar-width: none;
+}
+.zivo-scroll-row::-webkit-scrollbar {
+  display: none;
+}
+@keyframes zivo-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes zivo-screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* Center profile photos in every circular avatar, including feed, stories, Shorts and comments. */
+img[data-genmb-img*="profile"],
+img[data-genmb-img*="avatar"],
+.profile-avatar-preview,
+.profile-avatar-preview img {
+  object-fit: cover;
+  object-position: center;
+}
+.profile-avatar-preview img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+.zivo-story-ring {
+  background: var(--story-gradient);
+  box-shadow: 0 0 18px color-mix(in oklab, var(--story-pink) 26%, transparent);
+}
+.zivo-story-ring-seen {
+  background: var(--story-gradient-seen);
+  box-shadow: none;
+}
+.zivo-glass-panel {
+  border: 1px solid var(--glass-edge);
+  background: var(--glass-surface);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 16px 38px var(--shadow-strong),
+    0 4px 24px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(20px) saturate(145%);
+  backdrop-filter: blur(20px) saturate(145%);
+}
+.zivo-discover {
+  background: radial-gradient(circle at 85% 4%, var(--glow-primary), transparent 18rem), var(--home-background);
+}
+.zivo-discover-search,
+.zivo-discover-tag {
+  border: 1px solid var(--glass-edge);
+  background: linear-gradient(145deg, var(--glass-highlight), transparent 70%), var(--glass-surface);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 10px 28px var(--shadow-strong);
+  -webkit-backdrop-filter: blur(20px) saturate(145%);
+  backdrop-filter: blur(20px) saturate(145%);
+}
+.zivo-discover-category {
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 8px 20px var(--shadow-strong);
+}
+.zivo-discover-empty {
+  position: relative;
+  overflow: hidden;
+  padding: 2rem 1.5rem;
+  border-color: var(--glass-edge);
+  background: radial-gradient(circle at 15% 0%, var(--glow-primary), transparent 70%),
+    radial-gradient(circle at 90% 100%, var(--glow-secondary), transparent 65%),
+    linear-gradient(155deg, var(--glass-highlight), transparent 60%), var(--glass-surface);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 18px 40px var(--shadow-strong);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+.zivo-discover-empty .zivo-state-icon {
+  padding: 0.9rem;
+  border-radius: 1rem;
+  box-shadow: 0 6px 24px var(--glow-primary);
+}
+.zivo-create-glow {
+  isolation: isolate;
+  background: linear-gradient(135deg, var(--story-pink) 0%, var(--story-violet) 48%, var(--story-cyan) 100%);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--foreground) 22%, transparent),
+    0 0 18px color-mix(in oklab, var(--story-pink) 65%, transparent),
+    0 0 32px color-mix(in oklab, var(--story-violet) 45%, transparent),
+    0 8px 20px var(--shadow-strong);
+}
+.zivo-create-glow::before {
+  content: "";
+  position: absolute;
+  inset: -0.35rem;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--story-gradient);
+  opacity: 0.5;
+  filter: blur(12px);
+  pointer-events: none;
+}
+.zivo-feed-card {
+  animation: zivo-rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.zivo-post-float {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--glass-edge);
+  background: var(--card);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 8px 16px var(--shadow-strong),
+    0 26px 54px var(--shadow-float),
+    0 3px 32px var(--glass-shadow);
+  /* Feed cards are opaque on mobile, avoiding a blur pass for every card during scroll. */
+}
+.zivo-post-follow,
+.zivo-post-action,
+.zivo-post-share button {
+  transition:
+    transform 200ms var(--zivo-ease),
+    background-color 200ms var(--zivo-ease),
+    color 200ms var(--zivo-ease),
+    border-color 200ms var(--zivo-ease),
+    box-shadow 200ms var(--zivo-ease);
+}
+.zivo-post-follow:not(:disabled):active,
+.zivo-post-action:not(:disabled):active,
+.zivo-post-share button:not(:disabled):active {
+  transform: scale(0.92);
+}
+@media (hover: hover) {
+  .zivo-post-follow:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 8px 18px var(--glass-shadow),
+      0 5px 12px var(--shadow-strong);
+  }
+  .zivo-post-action:not(:disabled):hover,
+  .zivo-post-share button:not(:disabled):hover {
+    transform: translateY(-2px);
+    background: var(--glass-highlight);
+  }
+}
+.zivo-post-action:not(:disabled):active,
+.zivo-post-share button:not(:disabled):active {
+  background: var(--accent);
+}
+.zivo-media-overlay,
+.zivo-story-viewer {
+  --background: oklch(0.13 0.018 275);
+  --foreground: oklch(0.97 0.01 285);
+  --card: oklch(0.19 0.024 278);
+  --card-foreground: oklch(0.975 0.008 285);
+}
+.zivo-shorts-caption-shade {
+  background: linear-gradient(to top, var(--background) 0%, color-mix(in oklab, var(--background) 96%, transparent) 17%, color-mix(in oklab, var(--background) 77%, transparent) 42%, color-mix(in oklab, var(--background) 38%, transparent) 72%, transparent 100%);
+}
+.zivo-shorts-actions button {
+  transition: transform 220ms var(--zivo-ease), background-color 220ms var(--zivo-ease), border-color 220ms var(--zivo-ease), box-shadow 220ms var(--zivo-ease);
+}
+.zivo-shorts-actions button:not(:disabled):active {
+  transform: scale(0.86);
+  box-shadow: 0 0 20px var(--glow-primary);
+}
+@media (hover: hover) {
+  .zivo-shorts-actions button:not(:disabled):hover {
+    transform: translateY(-2px) scale(1.06);
+    box-shadow: 0 8px 22px var(--shadow-strong), 0 0 16px var(--glow-primary);
+  }
+}
+.zivo-shorts-progress {
+  background: color-mix(in oklab, var(--foreground) 25%, transparent);
+  box-shadow: 0 0 8px var(--shadow-strong);
+}
+.zivo-shorts-progress-fill {
+  background: linear-gradient(90deg, var(--story-violet), var(--story-pink) 55%, var(--story-cyan));
+  box-shadow: 0 0 8px var(--story-pink), 0 0 16px var(--glow-primary);
+  transition: width 160ms linear;
+}
+.zivo-feed-card:nth-of-type(2) {
+  animation-delay: 65ms;
+}
+.zivo-feed-card:nth-of-type(3) {
+  animation-delay: 120ms;
+}
+.zivo-loader {
+  display: inline-flex;
+  color: var(--primary);
+  animation: zivo-loader-spin 900ms linear infinite;
+}
+video:fullscreen,
+video:-webkit-full-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  background: var(--background);
+}
+.zivo-long-player:fullscreen {
+  display: flex;
+  width: 100vw;
+  height: 100dvh;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  background: var(--background);
+}
+.zivo-long-player:fullscreen video {
+  width: 100%;
+  height: auto;
+  max-height: 100dvh;
+}
+@media (orientation: portrait) {
+  .zivo-long-player:fullscreen video {
+    width: 100%;
+    height: auto;
+  }
+}
+@media (orientation: landscape) {
+  .zivo-long-player:fullscreen video {
+    width: auto;
+    height: 100%;
+    max-width: 100vw;
+  }
+}
+.zivo-loader-lg {
+  padding: 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--primary) 32%, var(--border));
+  border-radius: 1rem;
+  background: color-mix(in oklab, var(--accent) 72%, transparent);
+  box-shadow: 0 10px 28px var(--shadow-strong);
+}
+.zivo-loading-state {
+  display: flex;
+  min-height: 8rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
+  border-radius: var(--zivo-radius-lg);
+  background: color-mix(in oklab, var(--card) 82%, transparent);
+  box-shadow: 0 10px 28px var(--shadow-strong);
+}
+.zivo-state-panel {
+  border: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+  border-radius: var(--zivo-radius-lg);
+  padding: 1.25rem;
+  text-align: center;
+  background: color-mix(in oklab, var(--card) 92%, transparent);
+  box-shadow: 0 10px 28px var(--shadow-strong);
+}
+.zivo-state-icon {
+  display: inline-flex;
+  margin-bottom: 0.25rem;
+  padding: 0.65rem;
+  border: 1px solid color-mix(in oklab, var(--primary) 35%, var(--border));
+  border-radius: 0.875rem;
+  color: var(--primary);
+  background: color-mix(in oklab, var(--accent) 72%, transparent);
+}
+[role="dialog"][aria-label$="'s story"] .absolute.inset-x-0.bottom-0.z-20 {
+  pointer-events: none;
+}
+[role="dialog"][aria-label$="'s story"] .absolute.inset-x-0.bottom-0.z-20 button,
+[role="dialog"][aria-label$="'s story"] .absolute.inset-x-0.bottom-0.z-20 a {
+  pointer-events: auto;
+}
+@keyframes zivo-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+@media (min-width: 48rem) {
+  .app-frame {
+    width: min(100%, 30rem);
+    min-height: 100dvh;
+    margin: 0 auto;
+    border-inline: 1px solid var(--border);
+    box-shadow: var(--shadow-float);
+  }
+  .auth-frame {
+    width: min(100%, 30rem);
+    margin: 0 auto;
+    border-inline: 1px solid var(--border);
+    box-shadow: var(--shadow-float);
+  }
+}

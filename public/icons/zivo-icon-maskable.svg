@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="ZIVO maskable app icon">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#201443"/><stop offset=".48" stop-color="#11142b"/><stop offset="1" stop-color="#080b19"/></linearGradient>
+    <radialGradient id="pink" cx="0" cy="0" r="1" gradientTransform="translate(390 104) rotate(126) scale(330)"><stop stop-color="#f94ca9" stop-opacity=".8"/><stop offset="1" stop-color="#f94ca9" stop-opacity="0"/></radialGradient>
+    <radialGradient id="blue" cx="0" cy="0" r="1" gradientTransform="translate(89 408) rotate(-35) scale(360)"><stop stop-color="#3988ff" stop-opacity=".76"/><stop offset="1" stop-color="#3988ff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="letter" x1="135" y1="108" x2="370" y2="399"><stop stop-color="#ffffff"/><stop offset=".45" stop-color="#ffe0f5"/><stop offset="1" stop-color="#d3dbff"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#base)"/>
+  <rect width="512" height="512" fill="url(#pink)"/>
+  <rect width="512" height="512" fill="url(#blue)"/>
+  <path d="M172 186h168v33l-113 94h113v33H172v-33l113-94H172z" fill="url(#letter)"/>
+</svg>

@@ -1,0 +1,149 @@
+import { Link2, Share2 } from 'lucide-react'
+import { useRef, useState } from 'react'
+import type { PostFormat } from '../lib/posts'
+import { copyZivoContentLink, isValidZivoContentId, shareStatusMessage, shareZivoContent, zivoContentUrl, zivoShareText } from '../lib/contentShare'
+import { cn } from '../lib/utils'
+
+type ContentShareActionsProps = {
+  contentId: string
+  format: PostFormat
+  title: string
+  creatorName: string
+  layout?: 'row' | 'column'
+  shareCount?: string
+  className?: string
+  isPublic: boolean
+}
+
+export default function ContentShareActions({
+  contentId,
+  format,
+  title,
+  creatorName,
+  layout = 'row',
+  shareCount,
+  className,
+  isPublic,
+}: ContentShareActionsProps) {
+  const [status, setStatus] = useState('')
+  const [manualLink, setManualLink] = useState('')
+  const [isSharing, setIsSharing] = useState(false)
+  const [isCopying, setIsCopying] = useState(false)
+  const actionLock = useRef(false)
+  const link = zivoContentUrl(contentId, format)
+  const canShare = isPublic && isValidZivoContentId(contentId) && Boolean(link)
+
+  const unavailableMessage = () => {
+    if (!isPublic) return 'Only public ZIVO content can be shared.'
+    return 'This ZIVO content has an invalid link and cannot be shared.'
+  }
+
+  const copyLink = async () => {
+    if (actionLock.current) return
+    if (!canShare || !link) {
+      setStatus(unavailableMessage())
+      return
+    }
+
+    actionLock.current = true
+    setIsCopying(true)
+    setStatus('')
+    setManualLink('')
+    try {
+      const result = await copyZivoContentLink(link)
+      setStatus(result === 'copied' ? 'Link copied' : 'Select and copy the public link below.')
+      if (result === 'manual') setManualLink(link)
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Could not prepare the ZIVO link for copying.')
+    } finally {
+      actionLock.current = false
+      setIsCopying(false)
+    }
+  }
+
+  const share = async () => {
+    if (actionLock.current) return
+    if (!canShare || !link) {
+      setStatus(unavailableMessage())
+      return
+    }
+
+    actionLock.current = true
+    setIsSharing(true)
+    setStatus('')
+    setManualLink('')
+    const nativeTitle = `${creatorName} on ZIVO`
+    const shareText = zivoShareText(title, creatorName, link)
+
+    try {
+      const result = await shareZivoContent({ title: nativeTitle, text: shareText, url: link })
+      setStatus(shareStatusMessage(result))
+      if (result === 'manual-copy' || result === 'manual-copy-after-error') setManualLink(link)
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Could not prepare the public ZIVO link for sharing.')
+    } finally {
+      // Every completion path—including cancellation, native-sheet launch, and copy fallback—must
+      // release the same lock so a later deliberate tap starts a completely new share operation.
+      actionLock.current = false
+      setIsSharing(false)
+    }
+  }
+
+  const stacked = layout === 'column'
+  return (
+    <div className={cn(stacked ? 'flex flex-col items-center gap-3' : 'flex items-center gap-0.5', className)}>
+      <div className={stacked ? 'flex flex-col items-center gap-1' : undefined}>
+        <button
+          type="button"
+          onClick={() => void share()}
+          disabled={isSharing || isCopying}
+          aria-label={`Share ${creatorName}'s ZIVO content`}
+          className={cn(
+            'flex items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60',
+            stacked
+              ? 'size-11 rounded-full border border-border/60 bg-background/55 text-foreground shadow-premium backdrop-blur-md hover:bg-accent'
+              : 'min-h-11 gap-1.5 rounded-xl px-2 text-sm font-bold',
+          )}
+        >
+          <Share2 size={stacked ? 22 : 19} aria-hidden="true" />
+          {!stacked && shareCount}
+        </button>
+        {stacked && shareCount ? <span className="text-[11px] font-extrabold text-foreground [text-shadow:0_1px_8px_var(--background)]">{shareCount}</span> : null}
+      </div>
+      <button
+        type="button"
+        onClick={() => void copyLink()}
+        disabled={isSharing || isCopying}
+        aria-label="Copy ZIVO content link"
+        className={cn(
+          'flex items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60',
+          stacked
+            ? 'size-11 rounded-full border border-border/60 bg-background/55 text-foreground shadow-premium backdrop-blur-md hover:bg-accent'
+            : 'size-11 rounded-xl hover:bg-muted',
+        )}
+      >
+        <Link2 size={stacked ? 20 : 19} aria-hidden="true" />
+      </button>
+      {status ? (
+        <span
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] left-1/2 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-2xl border border-border bg-card px-4 py-3 text-center text-xs font-extrabold text-card-foreground shadow-premium"
+        >
+          {status}
+          {manualLink && (
+            <input
+              type="text"
+              readOnly
+              value={manualLink}
+              aria-label="Public ZIVO link to copy"
+              onFocus={(event) => event.currentTarget.select()}
+              onClick={(event) => event.currentTarget.select()}
+              className="mt-2 block w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground"
+            />
+          )}
+        </span>
+      ) : null}
+    </div>
+  )
+}
