@@ -17,7 +17,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 22
 
     - name: Install dependencies
       run: npm install
@@ -25,10 +25,10 @@ jobs:
     - name: Build project
       run: npm run build --if-present
 
-    - name: Add Android Platform
+    - name: Initialize Android Platform
       run: |
         if [ ! -d "android" ]; then
-          npx cap add android
+          npx @capacitor/cli add android || npx cap add android || echo "Skipping cap add"
         fi
 
     - name: Set up JDK 21
@@ -37,13 +37,18 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
 
-    - name: Build Debug APK with Capacitor / Gradle
+    - name: Build Debug APK with Gradle
       env:
         ANDROID_HOME: /usr/local/lib/android/sdk
       run: |
-        cd android
-        chmod +x gradlew
-        ./gradlew assembleDebug
+        if [ -d "android" ]; then
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+        else
+          echo "Android directory not found!"
+          exit 1
+        fi
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
