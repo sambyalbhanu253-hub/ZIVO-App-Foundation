@@ -5,7 +5,9 @@ const config: CapacitorConfig = {
   appName: 'ZIVO',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    url: 'https://zivo-app-foundation.genmb.com',
+    cleartext: true
   }
 };
 
