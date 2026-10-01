@@ -20,7 +20,10 @@ jobs:
         node-version: 22
 
     - name: Install dependencies
-      run: npm install
+      run: |
+        npm install
+        npm install @capacitor/core @capacitor/android --save
+        npm install @capacitor/cli --save-dev
 
     - name: Build project
       run: npm run build --if-present
@@ -28,7 +31,7 @@ jobs:
     - name: Initialize Android Platform
       run: |
         if [ ! -d "android" ]; then
-          npx @capacitor/cli add android || npx cap add android || echo "Skipping cap add"
+          npx cap add android
         fi
 
     - name: Set up JDK 21
