@@ -8,6 +8,8 @@ import SafetyMenu from "../components/SafetyMenu";
 import CreatorPostMenu from "../components/CreatorPostMenu";
 import LongFormVideoPlayer from "../components/LongFormVideoPlayer";
 import SmartShortCreator from "../components/SmartShortCreator";
+import SharedContentAppBanner from "../components/SharedContentAppBanner";
+import useSharedContentMeta from "../hooks/useSharedContentMeta";
 import { ZivoErrorState, ZivoLoadingState } from "../components/ZivoState";
 import usePageMeta from "../hooks/usePageMeta";
 import {
@@ -31,6 +33,7 @@ export default function ContentPage() {
   const [error, setError] = useState("");
 
   usePageMeta(post ? `${post.creatorName} on ZIVO` : "ZIVO content", "Watch and share ZIVO content.");
+  useSharedContentMeta(post);
 
   useEffect(() => {
     let active = true;
@@ -105,6 +108,7 @@ export default function ContentPage() {
 
   return (
     <section className="zivo-screen -mx-5 -mt-6 pb-4" aria-labelledby="content-title">
+      {post.mediaType === "video" && <SharedContentAppBanner />}
       <div className="sticky top-[76px] z-10 flex items-center gap-3 border-b border-border/70 bg-background/90 px-5 py-3 backdrop-blur-2xl">
         <Link
           to="/"

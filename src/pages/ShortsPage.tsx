@@ -10,6 +10,8 @@ import SafetyMenu from "../components/SafetyMenu";
 import CreatorPostMenu from "../components/CreatorPostMenu";
 import CommentThread from "../components/CommentThread";
 import ContentShareActions from "../components/ContentShareActions";
+import SharedContentAppBanner from "../components/SharedContentAppBanner";
+import useSharedContentMeta from "../hooks/useSharedContentMeta";
 import { ZivoEmptyState, ZivoErrorState, ZivoLoadingState } from "../components/ZivoState";
 import { useAuth } from "../auth/AuthProvider";
 import { actorFromUser, createNotification } from "../lib/notifications";
@@ -131,6 +133,7 @@ export default function ShortsPage() {
   const [persistedCommentCounts, setPersistedCommentCounts] = useState<Record<string, number>>({});
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [persistedShorts, setPersistedShorts] = useState<Short[]>([]);
+  const [sharedPost, setSharedPost] = useState<StoredPost | null>(null);
   const [isShortsLoading, setIsShortsLoading] = useState(true);
   const [shortsError, setShortsError] = useState("");
   const [videoProgress, setVideoProgress] = useState<Record<string, number>>({});
@@ -146,6 +149,7 @@ export default function ShortsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   usePageMeta("ZIVO Shorts — Premium Social Video", "Watch short-form video moments on ZIVO.");
+  useSharedContentMeta(contentId ? sharedPost : null);
 
   useEffect(() => {
     // A direct launch into Shorts may have no in-app history entry to return to.
@@ -208,6 +212,7 @@ export default function ShortsPage() {
     try {
       if (contentId) {
         const selectedPost = await loadPost(contentId);
+        setSharedPost(selectedPost);
         if (!selectedPost || selectedPost.format !== "short") {
           setPersistedShorts([]);
           setShortsError("This ZIVO Short is unavailable or has been removed.");
@@ -376,6 +381,7 @@ export default function ShortsPage() {
 
   return (
     <section className="zivo-screen relative" aria-label="ZIVO Shorts feed">
+      {contentId && <div className="relative z-20"><SharedContentAppBanner /></div>}
       <p className="sr-only">Swipe up to browse ZIVO Shorts.</p>
       {shareStatus && (
         <p className="sr-only" role="status">
@@ -391,7 +397,7 @@ export default function ShortsPage() {
         </p>
       )}
 
-      <div className="h-dvh snap-y snap-mandatory overflow-y-auto overscroll-contain bg-background [scrollbar-width:none]">
+      <div className={cn("snap-y snap-mandatory overflow-y-auto overscroll-contain bg-background [scrollbar-width:none]", contentId ? "h-[calc(100dvh-4.25rem)]" : "h-dvh")}>
         {feedShorts.map((short) => {
           const isLiked = likedShorts.includes(short.id);
           const isSaved = savedShorts.includes(short.id);
