@@ -125,7 +125,7 @@ export default function LongFormVideoPlayer({ src, poster, title, className, onD
   return (
     <div
       ref={playerRef}
-      className={cn('zivo-long-player group relative aspect-video overflow-hidden rounded-2xl bg-[var(--video-background)] shadow-premium', isFallbackFullscreen && 'zivo-long-player-fallback', className)}
+      className={cn('zivo-long-player group relative aspect-video overflow-hidden rounded-2xl bg-[var(--video-background)] shadow-premium', isFallbackFullscreen && 'zivo-long-player-fallback w-screen h-screen', className)}
       aria-label={`${title} video player`}
     >
       <video
