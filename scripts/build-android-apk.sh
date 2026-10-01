@@ -11,6 +11,9 @@ command -v npm >/dev/null 2>&1 || fail 'npm is required.'
 command -v java >/dev/null 2>&1 || fail 'A JDK (17 or newer) is required.'
 [[ -n "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}" ]] || fail 'Set ANDROID_HOME (or ANDROID_SDK_ROOT) to your installed Android SDK.'
 [[ -n "${ZIVO_PRODUCTION_URL:-}" && "$ZIVO_PRODUCTION_URL" =~ ^https://[^[:space:]]+$ ]] || fail 'Set ZIVO_PRODUCTION_URL to the deployed ZIVO HTTPS URL (the app loads this hosted URL).'
+[[ ! "$ZIVO_PRODUCTION_URL" =~ ^https://(localhost|127\.0\.0\.1|0\.0\.0\.0)([:/]|$) ]] || fail 'ZIVO_PRODUCTION_URL cannot point to localhost in an APK.'
+export ZIVO_PRODUCTION_URL
+printf 'Android WebView will load deployed ZIVO from %s (SDK/API calls must stay on that origin).\n' "$ZIVO_PRODUCTION_URL"
 [[ -f package.json ]] || fail 'No package.json in this export. Export the full Vite project with its package manifest before running this script.'
 [[ -x node_modules/.bin/vite && -x node_modules/.bin/cap ]] || fail 'Install project dependencies first (npm ci if package-lock.json exists, otherwise npm install), including @capacitor/cli and @capacitor/android.'
 
