@@ -104,11 +104,17 @@ export async function shareZivoContent({ title, text, url }: { title: string; te
       return 'web'
     } catch (error) {
       if (isCancelledShare(error)) return 'cancelled'
+      // Some Android WebViews expose Web Share but reject it. Try the existing native
+      // ACTION_SEND bridge before falling back to copying the public link.
+      try {
+        if (openAndroidShareSheet(text, title)) return 'android-native'
+      } catch {
+        // The bridge is unavailable; clipboard remains the final fallback.
+      }
       const copied = await copyZivoContentLink(url)
       return copied === 'copied' ? 'copied-after-error' : 'manual-copy-after-error'
     }
   }
-
   // Only a real Android WebView bridge can use ACTION_SEND. It is never used as a browser fallback.
   try {
     if (openAndroidShareSheet(text, title)) return 'android-native'
