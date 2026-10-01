@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Bookmark, Heart, MessageCircle, Music2 } from "lucide-react";
+import { ArrowLeft, Bookmark, Heart, MessageCircle, Music2 } from "lucide-react";
 import useFollowedCreators from "../hooks/useFollowedCreators";
 import usePageMeta from "../hooks/usePageMeta";
 import useVideoEngagement from "../hooks/useVideoEngagement";
@@ -146,6 +146,28 @@ export default function ShortsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   usePageMeta("ZIVO Shorts — Premium Social Video", "Watch short-form video moments on ZIVO.");
+
+  useEffect(() => {
+    // A direct launch into Shorts may have no in-app history entry to return to.
+    // Add one same-URL entry so WebView/browser Back produces popstate instead of exiting.
+    if (window.history.state?.idx === 0) {
+      window.history.pushState(window.history.state, "", window.location.href);
+    }
+    const handleBack = () => navigate("/", { replace: true });
+    window.addEventListener("popstate", handleBack);
+    return () => window.removeEventListener("popstate", handleBack);
+  }, [navigate]);
+
+  const backButton = (
+    <button
+      type="button"
+      onClick={() => navigate("/", { replace: true })}
+      aria-label="Back to Home"
+      className="relative z-10 flex size-11 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/65 text-foreground shadow-premium backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <ArrowLeft size={22} aria-hidden="true" />
+    </button>
+  );
   const {
     followedCreatorIds,
     isLoading: isFollowsLoading,
@@ -320,6 +342,7 @@ export default function ShortsPage() {
   if (isShortsLoading && persistedShorts.length === 0) {
     return (
       <section className="zivo-screen px-5 pt-6">
+        <div className="mb-4">{backButton}</div>
         <ZivoLoadingState label="Loading published Shorts…" />
       </section>
     );
@@ -328,6 +351,7 @@ export default function ShortsPage() {
   if (shortsError && feedShorts.length === 0) {
     return (
       <section className="zivo-screen px-5 pt-6">
+        <div className="mb-4">{backButton}</div>
         <ZivoErrorState
           title="Published Shorts could not load."
           description={shortsError}
@@ -340,6 +364,7 @@ export default function ShortsPage() {
   if (!isShortsLoading && feedShorts.length === 0) {
     return (
       <section className="zivo-screen px-5 pt-6">
+        <div className="mb-4">{backButton}</div>
         <ZivoEmptyState
           title={contentId ? "Short unavailable" : "No Shorts yet"}
           description={contentId ? "This ZIVO Short is no longer available." : "Published Shorts from the ZIVO community will appear here."}
@@ -417,8 +442,9 @@ export default function ShortsPage() {
               <div className="zivo-shorts-caption-shade pointer-events-none absolute inset-x-0 bottom-0 h-[72%]" />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background/25 via-transparent to-background/15" />
 
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 px-5 pt-[calc(max(env(safe-area-inset-top),1.5rem)+0.75rem)]">
-                <span className="inline-block rounded-full bg-background/35 px-3 py-1.5 text-sm font-bold text-foreground backdrop-blur-sm">Shorts</span>
+              <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-3 px-5 pt-[calc(max(env(safe-area-inset-top),1.5rem)+0.75rem)]">
+                {backButton}
+                <span className="pointer-events-none inline-block rounded-full bg-background/35 px-3 py-1.5 text-sm font-bold text-foreground backdrop-blur-sm">Shorts</span>
               </div>
 
               <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+2rem)] left-5 right-[5rem] max-h-[55%] overflow-y-auto [scrollbar-width:none]">
