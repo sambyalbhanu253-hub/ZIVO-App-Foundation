@@ -993,7 +993,7 @@ export default function HomePage() {
           return (
             <article
               key={post.id}
-              className="zivo-feed-card zivo-post-float overflow-hidden rounded-[1.5rem]"
+              className={cn("zivo-feed-card zivo-post-float overflow-hidden", videoSource ? "-mx-5 rounded-none border-x-0" : "rounded-[1.5rem]")}
             >
               <div className="flex items-center gap-3 px-5 pb-4 pt-5">
                 <img
@@ -1030,7 +1030,7 @@ export default function HomePage() {
                   <SafetyMenu targetType={post.isLongVideo ? "video" : post.isVideo ? "short" : "post"} targetId={post.id} targetOwnerId={post.ownerId} targetName={post.creator} onSafetyChange={() => void reloadSafety()} />
                 </div>
               </div>
-              <div className={cn("relative mx-4 overflow-hidden rounded-2xl bg-muted", videoSource ? "aspect-video bg-[var(--video-background)]" : "aspect-[4/5]")}>
+              <div className={cn("relative overflow-hidden bg-muted", videoSource ? "aspect-video w-full bg-[var(--video-background)]" : "mx-4 aspect-[4/5] rounded-2xl")}>
                 {videoSource ? (
                   <>
                     <video
