@@ -1,8 +1,5 @@
 {
-  "name": "ZIVO",
   "start_url": "/",
-  "short_name": "ZIVO",
-  "display": "standalone",
   "icons": [
     {
       "sizes": "192x192",
@@ -16,5 +13,8 @@
     }
   ],
   "theme_color": "#000000",
+  "name": "ZIVO",
+  "display": "standalone",
+  "short_name": "ZIVO",
   "background_color": "#ffffff"
 }
