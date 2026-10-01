@@ -26,9 +26,13 @@ jobs:
         npm install @capacitor/cli --save-dev
 
     - name: Build project
+      env:
+        ZIVO_PRODUCTION_URL: https://localhost
       run: npm run build --if-present
 
     - name: Initialize Android Platform
+      env:
+        ZIVO_PRODUCTION_URL: https://localhost
       run: |
         if [ ! -d "android" ]; then
           npx cap add android
@@ -44,6 +48,7 @@ jobs:
     - name: Build Debug APK with Gradle
       env:
         ANDROID_HOME: /usr/local/lib/android/sdk
+        ZIVO_PRODUCTION_URL: https://localhost
       run: |
         if [ -d "android" ]; then
           cd android
