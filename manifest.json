@@ -1,20 +1,20 @@
 {
   "name": "ZIVO",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
   "start_url": "/",
   "short_name": "ZIVO",
+  "display": "standalone",
   "icons": [
     {
+      "sizes": "192x192",
       "src": "/icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192"
+      "type": "image/png"
     },
     {
+      "sizes": "512x512",
       "src": "/icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "type": "image/png"
     }
   ],
-  "display": "standalone"
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
 }
