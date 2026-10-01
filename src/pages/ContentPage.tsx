@@ -154,7 +154,7 @@ export default function ContentPage() {
               controls
               playsInline
               preload="metadata"
-              className="size-full bg-background object-contain"
+              className="block h-full w-full bg-background object-cover"
               aria-label={post.mediaAlt}
             />
           ) : (

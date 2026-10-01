@@ -22,7 +22,16 @@ function formatTime(totalSeconds: number) {
 }
 
 export default function LongFormVideoPlayer({ src, poster, title, className, onDurationChange }: LongFormVideoPlayerProps) {
+  const playerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const fallbackFullscreenRef = useRef(false)
+  const [isFallbackFullscreen, setIsFallbackFullscreen] = useState(false)
+  const setFallbackFullscreen = (active: boolean) => {
+    fallbackFullscreenRef.current = active
+    setIsFallbackFullscreen(active)
+    setIsFullscreen(active)
+    document.body.style.overflow = active ? 'hidden' : ''
+  }
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -34,16 +43,22 @@ export default function LongFormVideoPlayer({ src, poster, title, className, onD
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === videoRef.current)
+      setIsFullscreen(document.fullscreenElement === playerRef.current || document.fullscreenElement === videoRef.current || fallbackFullscreenRef.current)
       setFullscreenError('')
     }
     const handleWebkitBegin = () => setIsFullscreen(true)
     const handleWebkitEnd = () => setIsFullscreen(false)
     const video = videoRef.current
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && fallbackFullscreenRef.current) setFallbackFullscreen(false)
+    }
+    document.addEventListener('keydown', handleEscape)
     document.addEventListener('fullscreenchange', handleFullscreenChange)
     video?.addEventListener('webkitbeginfullscreen', handleWebkitBegin)
     video?.addEventListener('webkitendfullscreen', handleWebkitEnd)
     return () => {
+      if (fallbackFullscreenRef.current) document.body.style.overflow = ''
+      document.removeEventListener('keydown', handleEscape)
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
       video?.removeEventListener('webkitbeginfullscreen', handleWebkitBegin)
       video?.removeEventListener('webkitendfullscreen', handleWebkitEnd)
@@ -92,14 +107,15 @@ export default function LongFormVideoPlayer({ src, poster, title, className, onD
     if (!video) return
     setFullscreenError('')
     try {
-      if (document.fullscreenElement === video) {
+      if (isFallbackFullscreen) {
+        setFallbackFullscreen(false)
+      } else if (document.fullscreenElement) {
         await document.exitFullscreen()
-      } else if (video.requestFullscreen) {
-        await video.requestFullscreen()
+      } else if (playerRef.current?.requestFullscreen) {
+        await playerRef.current.requestFullscreen()
       } else {
-        const iosVideo = video as HTMLVideoElement & { webkitEnterFullscreen?: () => void }
-        if (!iosVideo.webkitEnterFullscreen) throw new Error('Fullscreen is not available in this browser.')
-        iosVideo.webkitEnterFullscreen()
+        // Some embedded WebViews cannot enter element fullscreen; fill the viewport in-app.
+        setFallbackFullscreen(true)
       }
     } catch (error) {
       setFullscreenError(error instanceof Error ? error.message : 'Fullscreen is not available in this browser.')
@@ -108,7 +124,8 @@ export default function LongFormVideoPlayer({ src, poster, title, className, onD
 
   return (
     <div
-      className={cn('zivo-long-player group relative aspect-video overflow-hidden rounded-2xl bg-background shadow-premium', className)}
+      ref={playerRef}
+      className={cn('zivo-long-player group relative aspect-video overflow-hidden rounded-2xl bg-background shadow-premium', isFallbackFullscreen && 'zivo-long-player-fallback', className)}
       aria-label={`${title} video player`}
     >
       <video
@@ -117,8 +134,8 @@ export default function LongFormVideoPlayer({ src, poster, title, className, onD
         poster={poster}
         preload="metadata"
         playsInline
-        controls={isFullscreen}
-        className="size-full bg-background object-contain"
+        controls={false}
+        className="block h-full w-full bg-background object-cover"
         aria-label={title}
         onLoadStart={() => {
           setIsLoading(true)
