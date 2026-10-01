@@ -25,6 +25,12 @@ jobs:
     - name: Build project
       run: npm run build --if-present
 
+    - name: Add Android Platform
+      run: |
+        if [ ! -d "android" ]; then
+          npx cap add android
+        fi
+
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
@@ -35,14 +41,9 @@ jobs:
       env:
         ANDROID_HOME: /usr/local/lib/android/sdk
       run: |
-        if [ -d "android" ]; then
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
-        else
-          echo "Android folder not found, please check project configuration."
-          exit 1
-        fi
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
