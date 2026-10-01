@@ -32,6 +32,10 @@ export default function NotificationsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+  const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>(
+    'Notification' in window ? Notification.permission : 'unsupported',
+  );
+  const [requestingPermission, setRequestingPermission] = useState(false);
   const navigate = useNavigate();
 
   usePageMeta("Notifications on ZIVO", "Review new follower, likes, and comment notifications on ZIVO.");
@@ -61,6 +65,29 @@ export default function NotificationsPage() {
     }
     void refreshNotifications();
   }, [isAuthLoading, refreshNotifications, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsubscribe = window.genmb.realtime.subscribe(`zivo:notifications:${user.id}`, () => {
+      void refreshNotifications();
+    });
+    return unsubscribe;
+  }, [user, refreshNotifications]);
+
+  const enableAlerts = async () => {
+    if (!('Notification' in window) || requestingPermission) return;
+    setRequestingPermission(true);
+    setError('');
+    try {
+      const result = await Notification.requestPermission();
+      setPermission(result);
+      setStatus(result === 'granted' ? 'Browser activity alerts enabled while ZIVO is open.' : 'Browser alerts were not enabled. Your activity remains in this inbox.');
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Unable to request notification permission.');
+    } finally {
+      setRequestingPermission(false);
+    }
+  };
 
   const returnToPreviousScreen = () => {
     if (window.history.length > 1) {
@@ -162,7 +189,16 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <>
-            <div className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 shadow-premium">
+            <div className="mt-6 rounded-2xl border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
+              <p>Likes, comments and follows are saved here. Browser alerts work while ZIVO is open; background push requires a push delivery service.</p>
+              {permission === 'default' && (
+                <button type="button" onClick={() => void enableAlerts()} disabled={requestingPermission} className="mt-3 min-h-10 rounded-xl bg-primary px-4 font-bold text-primary-foreground disabled:opacity-60">
+                  {requestingPermission ? 'Requesting…' : 'Enable browser alerts'}
+                </button>
+              )}
+              {permission === 'denied' && <p className="mt-2">Alerts are blocked in your browser settings.</p>}
+            </div>
+            <div className="mt-3 flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 shadow-premium">
               <div className="flex items-center gap-2.5">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-muted text-primary">
                   <Bell size={18} aria-hidden="true" />

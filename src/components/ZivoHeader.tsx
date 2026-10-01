@@ -42,12 +42,28 @@ export default function ZivoHeader() {
 
   useEffect(() => {
     void refreshUnreadNotifications();
+    const unsubscribe = user ? window.genmb.realtime.subscribe(`zivo:notifications:${user.id}`, () => {
+      void refreshUnreadNotifications();
+      if ('Notification' in window && Notification.permission === 'granted' && document.visibilityState !== 'visible') {
+        void loadNotifications(user.id).then((items) => {
+          const latest = items.find((item) => !item.read)
+          if (latest) new Notification(`${latest.actor.name} on ZIVO`, {
+            body: latest.message,
+            icon: '/icons/zivo-icon-192.svg',
+            tag: `zivo-${latest.id}`,
+          }).onclick = () => { window.focus(); window.location.hash = '#/notifications' }
+        }).catch((error) => setStatus(error instanceof Error ? error.message : 'Unable to show activity alert.'))
+      }
+    }) : undefined;
     const handleNotificationsChanged = (event: Event) => {
       const changedRecipientId = (event as CustomEvent<{ recipientId?: string }>).detail?.recipientId;
       if (!user || changedRecipientId === user.id) void refreshUnreadNotifications();
     };
     window.addEventListener('zivo:notifications-changed', handleNotificationsChanged);
-    return () => window.removeEventListener('zivo:notifications-changed', handleNotificationsChanged);
+    return () => {
+      unsubscribe?.();
+      window.removeEventListener('zivo:notifications-changed', handleNotificationsChanged);
+    };
   }, [refreshUnreadNotifications, user]);
 
   const handleSignOut = async () => {

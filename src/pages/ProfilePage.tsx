@@ -55,7 +55,7 @@ import { cn } from "../lib/utils";
 import { validateText } from "../lib/textSafety";
 import { loadCreatorMonetizationSettings, type MonetizationStatus } from "../lib/monetization";
 
-type ProfileTab = "videos" | "shorts" | "saved";
+type ProfileTab = "videos" | "shorts" | "photos" | "saved";
 type ProfileMedia = {
   id: string;
   format: StoredPost["format"];
@@ -65,7 +65,7 @@ type ProfileMedia = {
   imageAlt: string;
   views: string;
   duration: string;
-  type: "videos" | "shorts";
+  type: "videos" | "shorts" | "photos";
   isVideo: boolean;
   isLongVideo: boolean;
   creatorName: string;
@@ -79,6 +79,7 @@ type ProfileMedia = {
 const profileTabs: Array<{ id: ProfileTab; label: string; icon: typeof Grid3X3 }> = [
   { id: "videos", label: "Videos", icon: Grid3X3 },
   { id: "shorts", label: "Shorts", icon: Clapperboard },
+  { id: "photos", label: "Photos", icon: Grid3X3 },
   { id: "saved", label: "Saved", icon: Bookmark },
 ];
 
@@ -92,7 +93,7 @@ function profileMediaFromPost(post: StoredPost): ProfileMedia {
     imageAlt: post.mediaAlt,
     views: "Views unavailable",
     duration: post.duration,
-    type: post.format === "short" ? "shorts" : "videos",
+    type: post.format === "short" ? "shorts" : post.mediaType === "video" ? "videos" : "photos",
     isVideo: post.mediaType === "video",
     isLongVideo: post.format === "video" && post.mediaType === "video",
     creatorName: post.creatorName,
@@ -638,6 +639,7 @@ export default function ProfilePage() {
   const avatar = profile.avatarUrl || (isOwnProfile && user?.picture) || avatarFallback(profileId);
   const videoCount = media.filter((item) => item.type === "videos").length;
   const shortCount = media.filter((item) => item.type === "shorts").length;
+  const photoCount = media.filter((item) => item.type === "photos").length;
 
   return (
     <section className="zivo-screen -mx-5 -mt-6 pb-2" aria-labelledby="page-title">
@@ -705,7 +707,7 @@ export default function ProfilePage() {
             {[
               [String(followerCount), "Followers"],
               [String(followingCount), "Following"],
-              [String(videoCount + shortCount), "Posts"],
+              [String(videoCount + shortCount + photoCount), "Posts"],
               [String(shortCount), "Shorts"],
             ].map(([value, label], index) => (
               <div
@@ -979,11 +981,11 @@ export default function ProfilePage() {
           </div>
           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
             <Eye size={14} className="text-primary" aria-hidden="true" />
-            {media.length} uploads
+            {videoCount} videos · {shortCount} Shorts
           </span>
         </div>
         <div
-          className="mt-4 grid grid-cols-3 gap-1.5 rounded-2xl border border-border bg-card p-1.5"
+          className="mt-4 grid grid-cols-4 gap-1 rounded-2xl border border-border bg-card p-1.5"
           role="tablist"
           aria-label="Profile content"
         >
@@ -1018,7 +1020,7 @@ export default function ProfilePage() {
               {profileTabs.find((tab) => tab.id === activeTab)?.label}
             </p>
             <p className="text-xs font-semibold text-muted-foreground">
-              {visibleMedia.length} {visibleMedia.length === 1 ? "post" : "posts"}
+              {visibleMedia.length} {visibleMedia.length === 1 ? "upload" : "uploads"}
             </p>
           </div>
           {activeTab === "saved" && savedLoading ? (
@@ -1031,7 +1033,9 @@ export default function ProfilePage() {
               description={
                 activeTab === "saved"
                   ? "Bookmark posts or shorts from their save icon to build your collection."
-                  : "Published photos, videos and Shorts will appear here."
+                  : activeTab === "videos" ? "Your uploaded videos will appear here."
+                    : activeTab === "shorts" ? "Your uploaded Shorts will appear here."
+                    : "Your uploaded photos will appear here."
               }
             />
           ) : (
@@ -1040,7 +1044,7 @@ export default function ProfilePage() {
                 item.isLongVideo ? (
                   <article
                     key={item.id}
-                    className="min-w-0 overflow-hidden rounded-2xl border border-border/50 bg-card p-2 shadow-premium"
+                    className="col-span-2 min-w-0 overflow-hidden rounded-2xl border border-border/50 bg-card p-2 shadow-premium"
                   >
                     <button
                       type="button"

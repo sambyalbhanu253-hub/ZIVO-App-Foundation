@@ -100,6 +100,11 @@ export async function createNotification(input: CreateNotificationInput): Promis
   }
   await window.genmb.kv.set(key, notification)
   announceNotificationsChanged(notification.recipientId)
+  try {
+    await window.genmb.realtime.publish(`zivo:notifications:${notification.recipientId}`, { id: notification.id })
+  } catch {
+    // The notification is stored; recipients will still see it when they open activity.
+  }
   return notification
 }
 
