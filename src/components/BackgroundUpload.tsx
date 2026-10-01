@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { createPost, type PostFormat } from '../lib/posts'
+import { captureVideoThumbnail } from '../lib/videoThumbnail'
 
 type UploadJob = { id: string; name: string; percent: number; status: 'uploading' | 'saving' | 'done' | 'error'; error?: string }
 type UploadInput = { file: File; format: PostFormat; title: string; caption: string; description: string; hashtags: string[]; duration?: number; channelId?: string; post_type: 'personal' | 'channel' }
@@ -35,18 +36,20 @@ export default function BackgroundUpload({ children }: { children: ReactNode }) 
       try {
         await window.genmb.auth.ready()
         if (window.genmb.auth.getUser()?.id !== creator.id) throw new Error('Your session expired. Sign in and try again.')
+        const thumbnail = await captureVideoThumbnail(input.file)
         const uploaded = await window.genmb.storage.upload(input.file, {
           folder: 'zivo-posts',
           onProgress: percent => update(id, { percent: Math.min(100, Math.max(0, Math.round(percent))) }),
         })
         update(id, { percent: 100, status: 'saving' })
+        const savedThumbnail = thumbnail ? await window.genmb.storage.upload(new File([thumbnail], `${id}.jpg`, { type: 'image/jpeg' }), { folder: 'zivo-thumbnails' }) : null
         if (window.genmb.auth.getUser()?.id !== creator.id) throw new Error('Your session expired before the draft could be saved.')
         await createPost({
           user: creator, mediaType: 'video', format: input.format,
           title: input.title || input.file.name, caption: input.caption || input.title || input.file.name,
           description: input.description, hashtags: input.hashtags, visibility: 'Private',
           media: { ...uploaded, alt: input.title || input.file.name }, videoDurationSeconds: input.duration,
-          idempotencyKey: id, channelId: input.channelId, post_type: input.post_type,
+          idempotencyKey: id, thumbnailUrl: savedThumbnail?.url, channelId: input.channelId, post_type: input.post_type,
         })
         update(id, { status: 'done' })
       } catch (error) {

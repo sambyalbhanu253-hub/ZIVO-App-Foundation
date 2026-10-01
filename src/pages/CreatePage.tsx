@@ -32,6 +32,7 @@ import { zivoLanguages, type ZivoContentTranslation } from "../lib/contentLangua
 import { createStory } from "../lib/stories";
 import { cn } from "../lib/utils";
 import { validateHashtags, validateText } from "../lib/textSafety";
+import { captureVideoThumbnail } from "../lib/videoThumbnail";
 
 type MediaType = "photo" | "short" | "video" | "story" | "live";
 
@@ -791,33 +792,15 @@ export default function CreatePage() {
     setSelectedMedia({ file, preview });
     if (isVideo) {
       const attempt = ++thumbnailAttemptRef.current;
-      const frame = document.createElement("video");
-      frame.preload = "auto";
-      frame.muted = true;
-      frame.playsInline = true;
-      frame.onloadeddata = () => {
-        try {
-          frame.currentTime = Number.isFinite(frame.duration) ? Math.min(0.1, frame.duration / 2) : 0;
-        } catch {
-          /* A first-frame preview may still be available. */
-        }
-      };
-      frame.onseeked = () => {
-        if (attempt !== thumbnailAttemptRef.current) return;
-        try {
-          const canvas = document.createElement("canvas");
-          canvas.width = 240;
-          canvas.height = Math.round((240 * frame.videoHeight) / frame.videoWidth);
-          if (!canvas.height) return;
-          canvas.getContext("2d")?.drawImage(frame, 0, 0, canvas.width, canvas.height);
-          setVideoThumbnail(canvas.toDataURL("image/jpeg", 0.8));
-        } catch {
-          /* The video element remains the fallback preview. */
-        }
-        frame.removeAttribute("src");
-        frame.load();
-      };
-      frame.src = preview.url;
+      void captureVideoThumbnail(file).then((thumbnail) => {
+        if (!thumbnail || attempt !== thumbnailAttemptRef.current) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (attempt === thumbnailAttemptRef.current && typeof reader.result === "string")
+            setVideoThumbnail(reader.result);
+        };
+        reader.readAsDataURL(thumbnail);
+      });
     }
     if (isVideo) {
       // A selected video is a browser-local draft only. Its File reference and

@@ -73,6 +73,7 @@ type Post = {
   avatar: string;
   image: string;
   imageAlt: string;
+  thumbnailUrl?: string;
   duration: string;
   category: string;
   caption: string;
@@ -237,6 +238,7 @@ function postFromStored(post: StoredPost): Post {
     avatar: post.creatorAvatar,
     image: post.mediaUrl || post.mediaRef,
     imageAlt: post.mediaAlt,
+    thumbnailUrl: post.thumbnailUrl,
     duration: post.duration,
     category: post.category,
     caption: post.caption,
@@ -265,6 +267,7 @@ function postFromStored(post: StoredPost): Post {
     avatar: post.creatorAvatar,
     image: resolvedMediaUrl || post.mediaUrl || post.mediaRef,
     imageAlt: post.mediaAlt,
+    thumbnailUrl: post.thumbnailUrl,
     duration: post.duration,
     category: post.category,
     caption: post.caption,
@@ -1032,6 +1035,7 @@ export default function HomePage() {
                   <>
                     <video
                       src={videoSource}
+                      poster={post.thumbnailUrl}
                       controls
                       playsInline
                       preload="metadata"

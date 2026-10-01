@@ -4,6 +4,7 @@ import { cn } from '../lib/utils'
 
 type LongFormVideoPlayerProps = {
   src: string
+  poster?: string
   title: string
   className?: string
   onDurationChange?: (durationSeconds: number) => void
@@ -20,7 +21,7 @@ function formatTime(totalSeconds: number) {
     : `${minutes}:${String(remainder).padStart(2, '0')}`
 }
 
-export default function LongFormVideoPlayer({ src, title, className, onDurationChange }: LongFormVideoPlayerProps) {
+export default function LongFormVideoPlayer({ src, poster, title, className, onDurationChange }: LongFormVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
@@ -113,6 +114,7 @@ export default function LongFormVideoPlayer({ src, title, className, onDurationC
       <video
         ref={videoRef}
         src={src}
+        poster={poster}
         preload="metadata"
         playsInline
         controls={isFullscreen}

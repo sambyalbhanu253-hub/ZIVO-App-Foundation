@@ -146,10 +146,11 @@ export default function ContentPage() {
         </div>
         <div className={isLongVideo ? "bg-muted p-2" : post.mediaType === "video" ? "relative aspect-video overflow-hidden bg-muted" : "relative aspect-[4/5] overflow-hidden bg-muted"}>
           {isLongVideo ? (
-            <LongFormVideoPlayer src={mediaUrl} title={post.title || post.caption || `${post.creatorName}'s video`} />
+            <LongFormVideoPlayer src={mediaUrl} poster={post.thumbnailUrl} title={post.title || post.caption || `${post.creatorName}'s video`} />
           ) : post.mediaType === "video" ? (
             <video
               src={mediaUrl}
+              poster={post.thumbnailUrl}
               controls
               playsInline
               preload="metadata"
