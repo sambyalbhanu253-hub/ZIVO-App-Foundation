@@ -72,7 +72,7 @@ export default function ContentShareActions({
     setIsSharing(true)
     setStatus('')
     setManualLink('')
-    const nativeTitle = `${creatorName} on ZIVO`
+    const nativeTitle = title.trim() || `${creatorName} on ZIVO`
     const shareText = zivoShareText(title, creatorName, link)
 
     try {

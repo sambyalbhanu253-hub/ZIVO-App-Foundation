@@ -100,7 +100,7 @@ export async function shareZivoContent({ title, text, url }: { title: string; te
   // before any WebView-only bridge. Browser preview never reaches the Android bridge below.
   if (typeof navigator.share === 'function') {
     try {
-      await navigator.share({ title, text, url })
+      await navigator.share({ title, url })
       return 'web'
     } catch (error) {
       if (isCancelledShare(error)) return 'cancelled'
