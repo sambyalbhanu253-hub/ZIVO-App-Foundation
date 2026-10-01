@@ -191,7 +191,7 @@ export default function ProfilePage() {
           window.genmb.kv.list("zivo:follow:"),
           window.genmb.kv.list(followPrefix(profileId)),
           isOwnProfile ? loadCreatorMonetizationSettings(profileId) : Promise.resolve(null),
-          isOwnProfile ? window.genmb.db.profiles.list({ limit: 25 }) : Promise.resolve(null),
+          isOwnProfile ? window.genmb.db.profiles.list({ limit: 1 }) : Promise.resolve(null),
         ]);
         const stored = readStoredProfile(rawProfile);
         const personal = personalProfiles?.data.find((record) => record.userId === profileId);
@@ -548,7 +548,7 @@ export default function ProfilePage() {
         bio,
         avatarUrl: draft.avatarUrl || user.picture || undefined,
       };
-      const records = await window.genmb.db.profiles.list({ limit: 25 });
+      const records = await window.genmb.db.profiles.list({ limit: 1 });
       const existing = records.data.find((record) => record.userId === user.id);
       if (existing) {
         await window.genmb.db.profiles.update(existing.id, {

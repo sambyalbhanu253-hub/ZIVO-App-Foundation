@@ -160,8 +160,13 @@ export default function MessagesPage() {
     if (!user) return
     const refreshInbox = () => void loadInbox()
     window.addEventListener('focus', refreshInbox)
-    return () => window.removeEventListener('focus', refreshInbox)
-  }, [loadInbox, user])
+    // The event contains no message body: persisted data is reloaded from storage.
+    const unsubscribe = window.genmb.realtime.subscribe(`zivo:inbox:${user.id}`, refreshInbox)
+    return () => {
+      window.removeEventListener('focus', refreshInbox)
+      unsubscribe()
+    }
+  }, [loadInbox, user]) 
 
   const returnToPreviousScreen = () => {
     if (window.history.length > 1) {
@@ -209,8 +214,13 @@ export default function MessagesPage() {
     event.preventDefault()
     const text = draft.trim()
     if (!text || !activeConversation || !user || isSending) return
-    if (!(await canInteractBetween(user.id, activeConversation.id))) {
-      setError('This conversation is unavailable because one of you has blocked the other.')
+    try {
+      if (!(await canInteractBetween(user.id, activeConversation.id))) {
+        setError('This conversation is unavailable because one of you has blocked the other.')
+        return
+      }
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Unable to check this conversation.')
       return
     }
 
@@ -230,6 +240,11 @@ export default function MessagesPage() {
     try {
       await savePrivateMessage(newMessage)
       setStatus('Message sent.')
+      try {
+        await window.genmb.realtime.publish(`zivo:inbox:${newMessage.receiverId}`, { changed: true })
+      } catch (publishError) {
+        setError(`Message saved, but live delivery failed: ${publishError instanceof Error ? publishError.message : String(publishError)}. The recipient can refresh their inbox.`)
+      }
     } catch (caughtError) {
       setMessages(previousMessages)
       setDraft(text)

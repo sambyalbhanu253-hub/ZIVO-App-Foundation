@@ -103,6 +103,11 @@ export async function deleteCommentForContentOwner({ creatorId, contentId, conte
   const comment = readComment(await window.genmb.kv.get(key), contentType, contentId)
   if (!comment) throw new Error('This comment is no longer available.')
   await window.genmb.kv.delete(key)
+  try {
+    await window.genmb.realtime.publish(`zivo:comments:${contentType}:${contentId}`, { changed: true })
+  } catch {
+    // Deletion is durable; other viewers can refresh if the live event fails.
+  }
 }
 
 export default function usePersistentComments(contentType: CommentContentType, contentId: string, enabled: boolean) {
@@ -132,9 +137,11 @@ export default function usePersistentComments(contentType: CommentContentType, c
   }, [contentId, contentType])
 
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled || !contentId) return
     void loadComments()
-  }, [enabled, loadComments])
+    const unsubscribe = window.genmb.realtime.subscribe(`zivo:comments:${contentType}:${contentId}`, () => { void loadComments() })
+    return unsubscribe
+  }, [enabled, contentId, contentType, loadComments])
 
   useEffect(() => {
     if (!enabled) {
@@ -168,6 +175,11 @@ export default function usePersistentComments(contentType: CommentContentType, c
 
       await window.genmb.kv.set(`${commentPrefix(contentType, contentId)}${comment.id}`, comment)
       setComments((current) => [...current, comment])
+      try {
+        await window.genmb.realtime.publish(`zivo:comments:${contentType}:${contentId}`, { changed: true })
+      } catch (publishError) {
+        setError(`Comment saved, but live updates failed: ${publishError instanceof Error ? publishError.message : String(publishError)}. Other viewers can refresh.`)
+      }
       return comment
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Unable to post your comment.')
