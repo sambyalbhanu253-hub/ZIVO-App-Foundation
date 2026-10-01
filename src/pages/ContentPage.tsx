@@ -144,7 +144,7 @@ export default function ContentPage() {
             <SafetyMenu targetType={post.format === "video" ? "video" : "post"} targetId={post.id} targetOwnerId={post.creatorId} targetName={post.creatorName} />
           </div>
         </div>
-        <div className={isLongVideo ? "bg-muted p-2" : post.mediaType === "video" ? "relative aspect-video overflow-hidden bg-muted" : "relative aspect-[4/5] overflow-hidden bg-muted"}>
+        <div className={isLongVideo ? "bg-muted p-2" : post.mediaType === "video" ? "relative aspect-video overflow-hidden bg-[var(--video-background)]" : "relative aspect-[4/5] overflow-hidden bg-muted"}>
           {isLongVideo ? (
             <LongFormVideoPlayer src={mediaUrl} poster={post.thumbnailUrl} title={post.title || post.caption || `${post.creatorName}'s video`} />
           ) : post.mediaType === "video" ? (
@@ -154,7 +154,7 @@ export default function ContentPage() {
               controls
               playsInline
               preload="metadata"
-              className="block h-full w-full bg-background object-cover"
+              className="block h-full w-full bg-[var(--video-background)] object-contain"
               aria-label={post.mediaAlt}
             />
           ) : (

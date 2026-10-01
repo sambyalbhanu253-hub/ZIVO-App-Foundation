@@ -1030,7 +1030,7 @@ export default function HomePage() {
                   <SafetyMenu targetType={post.isLongVideo ? "video" : post.isVideo ? "short" : "post"} targetId={post.id} targetOwnerId={post.ownerId} targetName={post.creator} onSafetyChange={() => void reloadSafety()} />
                 </div>
               </div>
-              <div className={cn("relative mx-4 overflow-hidden rounded-2xl bg-muted", videoSource ? "aspect-video" : "aspect-[4/5]")}>
+              <div className={cn("relative mx-4 overflow-hidden rounded-2xl bg-muted", videoSource ? "aspect-video bg-[var(--video-background)]" : "aspect-[4/5]")}>
                 {videoSource ? (
                   <>
                     <video
@@ -1039,7 +1039,7 @@ export default function HomePage() {
                       controls
                       playsInline
                       preload="metadata"
-                      className="size-full bg-background object-contain"
+                      className="size-full bg-[var(--video-background)] object-contain"
                       aria-label={post.imageAlt}
                     />
                     <button

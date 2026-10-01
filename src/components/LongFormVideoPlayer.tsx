@@ -125,7 +125,7 @@ export default function LongFormVideoPlayer({ src, poster, title, className, onD
   return (
     <div
       ref={playerRef}
-      className={cn('zivo-long-player group relative aspect-video overflow-hidden rounded-2xl bg-background shadow-premium', isFallbackFullscreen && 'zivo-long-player-fallback', className)}
+      className={cn('zivo-long-player group relative aspect-video overflow-hidden rounded-2xl bg-[var(--video-background)] shadow-premium', isFallbackFullscreen && 'zivo-long-player-fallback', className)}
       aria-label={`${title} video player`}
     >
       <video
@@ -135,7 +135,7 @@ export default function LongFormVideoPlayer({ src, poster, title, className, onD
         preload="metadata"
         playsInline
         controls={false}
-        className="block h-full w-full bg-background object-cover"
+        className="block h-full w-full bg-[var(--video-background)] object-contain"
         aria-label={title}
         onLoadStart={() => {
           setIsLoading(true)
