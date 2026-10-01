@@ -352,7 +352,10 @@ export default function HomePage() {
   const feedPosts = [...persistedPosts, ...posts].filter(
     (post) => post.isPublic && !hiddenUserIds.includes(post.ownerId),
   );
-  const visiblePosts =
+  const shortVideos = visiblePosts.filter(post => post.isShort || (!post.isLongVideo && post.videoSource));
+const longVideos = visiblePosts.filter(post => !post.isShort && post.isLongVideo);
+
+const visiblePosts =
     activeTab === "for-you" ? feedPosts : feedPosts.filter((post) => followedCreatorIds.includes(post.ownerId));
   const stories = [
     ...persistedStories.filter((story) => !story.expiresAt || story.expiresAt > Date.now()),
