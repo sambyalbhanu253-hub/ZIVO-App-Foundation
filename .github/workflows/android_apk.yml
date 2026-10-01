@@ -31,10 +31,9 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-
     - name: Build Debug APK with Capacitor / Gradle
+      env:
+        ANDROID_HOME: /usr/local/lib/android/sdk
       run: |
         if [ -d "android" ]; then
           cd android
