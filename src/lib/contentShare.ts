@@ -59,7 +59,7 @@ export function isCancelledZivoShare(error: unknown) {
 }
 
 export type ZivoCopyResult = 'copied' | 'manual'
-export type ZivoShareResult = 'web' | 'android-native' | 'cancelled' | 'copied' | 'copied-after-error' | 'manual-copy' | 'manual-copy-after-error'
+export type ZivoShareResult = 'web' | 'android-native' | 'cancelled' | 'options' | 'options-after-error'
 
 export async function copyZivoContentLink(link: string): Promise<ZivoCopyResult> {
   try {
@@ -96,42 +96,29 @@ export async function copyZivoContentLink(link: string): Promise<ZivoCopyResult>
 }
 
 export async function shareZivoContent({ title, text, url }: { title: string; text: string; url: string }): Promise<ZivoShareResult> {
-  // Web Share is the correct Android Chrome/native-capable path and is intentionally attempted
-  // before any WebView-only bridge. Browser preview never reaches the Android bridge below.
+  // A host app's ACTION_SEND bridge is the most reliable option in its Android WebView.
+  // Embedded browser previews without that bridge still use Web Share when permitted.
+  try {
+    if (openAndroidShareSheet(text, title)) return 'android-native'
+  } catch {
+    // Fall through to Web Share or the visible share options.
+  }
   if (typeof navigator.share === 'function') {
     try {
       await navigator.share({ title, url })
       return 'web'
     } catch (error) {
       if (isCancelledShare(error)) return 'cancelled'
-      // Some Android WebViews expose Web Share but reject it. Try the existing native
-      // ACTION_SEND bridge before falling back to copying the public link.
-      try {
-        if (openAndroidShareSheet(text, title)) return 'android-native'
-      } catch {
-        // The bridge is unavailable; clipboard remains the final fallback.
-      }
-      const copied = await copyZivoContentLink(url)
-      return copied === 'copied' ? 'copied-after-error' : 'manual-copy-after-error'
+      // An iframe may disallow Web Share via Permissions Policy. Offer real destinations
+      // instead of silently copying and claiming the share succeeded.
+      return 'options-after-error'
     }
   }
-  // Only a real Android WebView bridge can use ACTION_SEND. It is never used as a browser fallback.
-  try {
-    if (openAndroidShareSheet(text, title)) return 'android-native'
-  } catch {
-    const copied = await copyZivoContentLink(url)
-    return copied === 'copied' ? 'copied-after-error' : 'manual-copy-after-error'
-  }
-
-  const copied = await copyZivoContentLink(url)
-  return copied === 'copied' ? 'copied' : 'manual-copy'
+  return 'options'
 }
 
 export function shareStatusMessage(result: ZivoShareResult) {
-  if (result === 'web' || result === 'android-native') return 'Shared'
+  if (result === 'web' || result === 'android-native') return 'Share sheet opened.'
   if (result === 'cancelled') return 'Share closed.'
-  if (result === 'copied-after-error') return 'Share was unavailable. Link copied so you can paste it anywhere.'
-  if (result === 'manual-copy-after-error') return 'Share was unavailable. Select and copy the link below.'
-  if (result === 'manual-copy') return 'Select and copy the public link below.'
-  return 'Link copied. You can paste it anywhere to share this ZIVO content.'
+  return result === 'options-after-error' ? 'System sharing is blocked here. Choose an app below.' : 'Choose an app to share this video.'
 }

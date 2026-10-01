@@ -1,4 +1,4 @@
-import { Link2, Share2 } from 'lucide-react'
+import { Link2, Share2, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import type { PostFormat } from '../lib/posts'
 import { copyZivoContentLink, isValidZivoContentId, shareStatusMessage, shareZivoContent, zivoContentUrl, zivoShareText } from '../lib/contentShare'
@@ -27,6 +27,7 @@ export default function ContentShareActions({
 }: ContentShareActionsProps) {
   const [status, setStatus] = useState('')
   const [manualLink, setManualLink] = useState('')
+  const [showShareOptions, setShowShareOptions] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
   const actionLock = useRef(false)
@@ -72,13 +73,14 @@ export default function ContentShareActions({
     setIsSharing(true)
     setStatus('')
     setManualLink('')
+    setShowShareOptions(false)
     const nativeTitle = title.trim() || `${creatorName} on ZIVO`
     const shareText = zivoShareText(title, creatorName, link)
 
     try {
       const result = await shareZivoContent({ title: nativeTitle, text: shareText, url: link })
       setStatus(shareStatusMessage(result))
-      if (result === 'manual-copy' || result === 'manual-copy-after-error') setManualLink(link)
+      if (result === 'options' || result === 'options-after-error') setShowShareOptions(true)
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Could not prepare the public ZIVO link for sharing.')
     } finally {
@@ -90,6 +92,7 @@ export default function ContentShareActions({
   }
 
   const stacked = layout === 'column'
+  const shareText = link ? zivoShareText(title, creatorName, link) : ''
   return (
     <div className={cn(stacked ? 'flex flex-col items-center gap-3' : 'flex items-center gap-0.5', className)}>
       <div className={stacked ? 'flex flex-col items-center gap-1' : undefined}>
@@ -124,7 +127,23 @@ export default function ContentShareActions({
       >
         <Link2 size={stacked ? 20 : 19} aria-hidden="true" />
       </button>
-      {status ? (
+      {showShareOptions && link && (
+        <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-1/2 z-[70] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-premium" role="group" aria-label="Share video options">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-extrabold">Share this ZIVO video</p>
+            <button type="button" onClick={() => { setShowShareOptions(false); setStatus('') }} aria-label="Close share options" className="flex size-11 items-center justify-center rounded-xl text-card-foreground focus-visible:ring-2 focus-visible:ring-ring"><X size={20} /></button>
+          </div>
+          <p className="mb-3 text-xs text-muted-foreground">{status}</p>
+          <div className="grid grid-cols-2 gap-2 text-center text-sm font-bold">
+            <a href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-border bg-muted px-3 py-3 text-foreground">WhatsApp</a>
+            <a href={`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(title)}`} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-border bg-muted px-3 py-3 text-foreground">Telegram</a>
+            <a href={`sms:?body=${encodeURIComponent(shareText)}`} className="rounded-xl border border-border bg-muted px-3 py-3 text-foreground">Messages</a>
+            <a href={`mailto:?subject=${encodeURIComponent(title || 'ZIVO video')}&body=${encodeURIComponent(shareText)}`} className="rounded-xl border border-border bg-muted px-3 py-3 text-foreground">Email</a>
+          </div>
+          <button type="button" onClick={() => void copyLink()} disabled={isCopying} className="mt-3 min-h-11 w-full rounded-xl border border-border bg-background text-sm font-bold text-foreground disabled:opacity-60">Copy link</button>
+        </div>
+      )}
+      {status && !showShareOptions ? (
         <span
           role="status"
           aria-live="polite"
