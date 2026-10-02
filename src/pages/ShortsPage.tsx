@@ -489,7 +489,7 @@ export default function ShortsPage() {
                   </div>
                 </div>
                 {short.title && (
-                  <h2 className="text-base font-extrabold leading-6 text-foreground [text-shadow:0_1px_12px_var(--background)]">{short.title}</h2>
+                  <h2 className="text-base font-extrabold leading-6 text-foreground [text-shadow:0_1px_12px_var(--background)]">{!short.title || short.title.includes(".mp4") ? "Zivo Creator Broadcast" : short.title}</h2>
                 )}
                 {short.description ? (
                   <div className="mt-1 text-sm font-medium leading-5 text-foreground [text-shadow:0_1px_12px_var(--background)]">

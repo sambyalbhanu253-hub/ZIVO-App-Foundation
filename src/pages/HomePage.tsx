@@ -892,7 +892,7 @@ const visiblePosts =
                       className="size-11 rounded-full border border-border object-cover"
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-extrabold text-card-foreground">{live.title && !live.title.includes(".mp4") ? live.title : "Zivo Creator Broadcast"}</span>
+                      <span className="block truncate text-sm font-extrabold text-card-foreground">{!live.title || live.title.includes(".mp4") ? "Zivo Creator Broadcast" : live.title}</span>
                       <span className="mt-0.5 block truncate text-xs font-semibold text-muted-foreground">
                         {live.creatorProfile.displayName}
                         {live.category ? ` · ${live.category}` : ""}
@@ -937,7 +937,7 @@ const visiblePosts =
                   aria-pressed={selected}
                   onClick={() => {
                     setSelectedMusic(track.id);
-                    setFeedMessage(`${track.title && !track.title.includes(".mp4") ? track.title : "Zivo Creator Broadcast"} selected.`);
+                    setFeedMessage(`${!track.title || track.title.includes(".mp4") ? "Zivo Creator Broadcast" : track.title} selected.`);
                   }}
                   className={cn(
                     "zivo-glass-panel flex w-52 shrink-0 snap-start items-center gap-3 rounded-[1.4rem] p-2.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -959,7 +959,7 @@ const visiblePosts =
                     </span>
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-extrabold text-card-foreground">{track.title && !track.title.includes(".mp4") ? track.title : "Zivo Creator Broadcast"}</span>
+                    <span className="block truncate text-sm font-extrabold text-card-foreground">{!track.title || track.title.includes(".mp4") ? "Zivo Creator Broadcast" : track.title}</span>
                     <span className="mt-0.5 block truncate text-xs font-semibold text-muted-foreground">
                       {track.artist}
                     </span>
@@ -1138,7 +1138,7 @@ const visiblePosts =
                   </button>
                 </div>
                 {post.views && <p className="mt-2 text-xs font-bold text-muted-foreground">{post.views}</p>}
-                {post.title && <h2 className="mt-2 text-base font-extrabold leading-6 text-card-foreground">{post.title && !post.title.includes(".mp4") ? post.title : "Zivo Creator Broadcast"}</h2>}
+                {post.title && <h2 className="mt-2 text-base font-extrabold leading-6 text-card-foreground">{!post.title || post.title.includes(".mp4") ? "Zivo Creator Broadcast" : post.title}</h2>}
                 <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-6 text-card-foreground">
                   <span className="mr-1 font-extrabold">{post.creator}</span>
                   {post.description ?? (post.title ? (post.caption === post.title ? "" : post.caption) : post.caption)}
