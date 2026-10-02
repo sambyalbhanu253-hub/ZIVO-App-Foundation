@@ -170,7 +170,7 @@ export default function LivePage() {
             controls
             playsInline
             className="size-full object-cover"
-            aria-label={`${live.title} live stream`}
+            aria-label={`${live.title && !live.title.includes(".mp4") ? live.title : "Zivo Creator Broadcast"} live stream`}
           />
         ) : (
           <div className="flex size-full flex-col items-center justify-center bg-gradient-to-b from-accent to-background px-8 text-center">
@@ -239,7 +239,7 @@ export default function LivePage() {
             </button>
           )}
         </div>
-        <h2 className="text-lg font-extrabold text-foreground">{live.title}</h2>
+        <h2 className="text-lg font-extrabold text-foreground">{live.title && !live.title.includes(".mp4") ? live.title : "Zivo Creator Broadcast"}</h2>
         {error && (
           <p
             role="alert"
