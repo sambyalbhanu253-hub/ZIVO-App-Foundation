@@ -1138,7 +1138,7 @@ const visiblePosts =
                   </button>
                 </div>
                 {post.views && <p className="mt-2 text-xs font-bold text-muted-foreground">{post.views}</p>}
-                {post.title && <h2 className="mt-2 text-base font-extrabold leading-6 text-card-foreground">{post.title}</h2>}
+                {post.title && <h2 className="mt-2 text-base font-extrabold leading-6 text-card-foreground">{post.title && !post.title.includes(".mp4") ? post.title : "Zivo Creator Broadcast"}</h2>}
                 <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-6 text-card-foreground">
                   <span className="mr-1 font-extrabold">{post.creator}</span>
                   {post.description ?? (post.title ? (post.caption === post.title ? "" : post.caption) : post.caption)}
