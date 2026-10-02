@@ -26,11 +26,10 @@ class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorBoundary
     if (!error) return this.props.children
     return (
       <div className="mx-auto max-w-md px-5 py-8" role="alert">
-        <ZivoErrorState
-          title="ZIVO hit a snag."
-          description="This section could not be displayed. Reload ZIVO to try again."
-          action={{ label: 'Refresh ZIVO', onClick: () => window.location.reload() }}
-        />
+        <div className="p-4 bg-red-100 text-red-800 rounded-lg border border-red-300">
+          <h3 className="font-bold text-lg mb-1">Asli Error mil gaya:</h3>
+          <p className="text-sm font-mono break-words">{error.message || String(error)}</p>
+        </div>
       </div>
     )
   }
