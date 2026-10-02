@@ -2,48 +2,33 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [ "main", "master" ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout Repository
       uses: actions/checkout@v4
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 22
-
-    - name: Install dependencies
-      run: |
-        npm install
-        npm install @capacitor/core @capacitor/android --save
-        npm install @capacitor/cli --save-dev
-
-    - name: Build project
-      env:
-        ZIVO_PRODUCTION_URL: https://localhost
-      run: npm run build --if-present
-
-    - name: Initialize Android Platform
-      env:
-        ZIVO_PRODUCTION_URL: https://localhost
-      run: |
-        if [ ! -d "android" ]; then
-          npx cap add android
-        fi
-        npx cap sync android
 
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '21'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies & Build Web
+      run: |
+        npm install
+        npm run build
 
     - name: Build Debug APK with Gradle
       env:
