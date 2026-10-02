@@ -28,6 +28,7 @@ jobs:
       run: |
         npm install
         npm run build
+        npx cap sync android
 
     - name: Build Debug APK with Gradle
       env:
