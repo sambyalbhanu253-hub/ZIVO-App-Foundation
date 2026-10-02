@@ -28,7 +28,7 @@ jobs:
       run: |
         npm install
         npm run build
-        npx cap add android || true
+        npx cap add android --web-dir dist || true
         npx cap sync android
 
     - name: Build Debug APK with Gradle
