@@ -1931,7 +1931,7 @@ window.__genmbBindSdk(window.genmb.storage);
 
       this.shadowRoot.innerHTML =
         '<style>' + CSS + '</style>' +
-        '<video' + attrs + ' poster="' + this._escape(poster) + '"></video>' +
+        '<video preload="metadata" controls playsinline' + attrs + ' poster="' + this._escape(poster) + '"></video>' +
         '<span class="badge"></span>' +
         '<div class="chapters" part="chapters"></div>'
 
