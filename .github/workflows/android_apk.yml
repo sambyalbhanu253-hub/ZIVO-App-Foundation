@@ -28,8 +28,8 @@ jobs:
       run: |
         npm install
         npm install @capacitor/android
+        rm -rf dist
         npm run build
-        npx cap add android || true
         npx cap sync android
 
     - name: Build Debug APK with Gradle
@@ -40,6 +40,7 @@ jobs:
         if [ -d "android" ]; then
           cd android
           chmod +x gradlew
+          ./gradlew clean
           ./gradlew assembleDebug
         else
           echo "Android directory not found!"
