@@ -1280,3 +1280,5 @@ const visiblePosts =
     </section>
   );
 }
+
+// Duration badge update
