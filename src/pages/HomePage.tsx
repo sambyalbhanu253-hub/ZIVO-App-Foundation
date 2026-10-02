@@ -1282,3 +1282,5 @@ const visiblePosts =
 }
 
 // Duration badge update
+
+// UI spacing and padding polished
