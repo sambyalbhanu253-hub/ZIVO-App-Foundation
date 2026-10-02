@@ -27,8 +27,9 @@ jobs:
     - name: Install dependencies & Build Web
       run: |
         npm install
+        npm install @capacitor/android
         npm run build
-        yes | npx cap add android || true
+        npx cap add android || true
         npx cap sync android
 
     - name: Build Debug APK with Gradle
