@@ -892,7 +892,7 @@ const visiblePosts =
                       className="size-11 rounded-full border border-border object-cover"
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-extrabold text-card-foreground">{live.title}</span>
+                      <span className="block truncate text-sm font-extrabold text-card-foreground">{live.title && !live.title.includes(".mp4") ? live.title : "Zivo Creator Broadcast"}</span>
                       <span className="mt-0.5 block truncate text-xs font-semibold text-muted-foreground">
                         {live.creatorProfile.displayName}
                         {live.category ? ` · ${live.category}` : ""}
@@ -937,7 +937,7 @@ const visiblePosts =
                   aria-pressed={selected}
                   onClick={() => {
                     setSelectedMusic(track.id);
-                    setFeedMessage(`${track.title} selected.`);
+                    setFeedMessage(`${track.title && !track.title.includes(".mp4") ? track.title : "Zivo Creator Broadcast"} selected.`);
                   }}
                   className={cn(
                     "zivo-glass-panel flex w-52 shrink-0 snap-start items-center gap-3 rounded-[1.4rem] p-2.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -959,7 +959,7 @@ const visiblePosts =
                     </span>
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-extrabold text-card-foreground">{track.title}</span>
+                    <span className="block truncate text-sm font-extrabold text-card-foreground">{track.title && !track.title.includes(".mp4") ? track.title : "Zivo Creator Broadcast"}</span>
                     <span className="mt-0.5 block truncate text-xs font-semibold text-muted-foreground">
                       {track.artist}
                     </span>
