@@ -27,7 +27,7 @@ import ContentShareActions from "../components/ContentShareActions";
 import { useAuth } from "../auth/AuthProvider";
 import { actorFromUser, createNotification } from "../lib/notifications";
 import { loadLiveSessions, type ZivoLiveSession } from "../lib/live";
-import { loadPosts, localPostPublishedEvent, localPostUpdatedEvent, localPostDeletedEvent, type StoredPost } from "../lib/posts";
+import { loadPosts, loadShorts, localPostPublishedEvent, localPostUpdatedEvent, localPostDeletedEvent, type StoredPost } from "../lib/posts";
 import { profileUpdatedEvent } from "../lib/profiles";
 import { loadActiveStories, type StoredStory } from "../lib/stories";
 import { cn } from "../lib/utils";
@@ -64,6 +64,7 @@ function storyFromStored(story: StoredStory): Story {
     expiresAt: story.expiresAt,
   };
 }
+
 type Music = { id: string; title: string; artist: string; uses: string; artwork: string; artAlt: string };
 type Post = {
   id: string;
@@ -95,7 +96,6 @@ type Post = {
   isPublic: boolean;
 };
 
-// Moved videoSourceForPost up before postFromStored to avoid TDZ / initialization error
 function videoSourceForPost(post: Post) {
   if (!post.isVideo) return undefined;
   const candidates: unknown[] = [post.videoUrl, post.video, post.mediaUrl, post.media, post.fileUrl, post.url];
@@ -291,66 +291,35 @@ function postFromStored(post: StoredPost): Post {
   };
 }
 
-function formatCount(count: number) {
-  return count >= 1000 ? `${(count / 1000).toFixed(count >= 10000 ? 0 : 1)}K` : String(count);
-}
-
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<FeedTab>("for-you");
-  const [openComments, setOpenComments] = useState<string | null>(null);
-  const [persistedCommentCounts, setPersistedCommentCounts] = useState<Record<string, number>>({});
-  const [shareMessage, setShareMessage] = useState("");
-  const [feedMessage, setFeedMessage] = useState("");
-  const [seenStories, setSeenStories] = useState<string[]>(["lena-records"]);
-  const [persistedStories, setPersistedStories] = useState<Story[]>([]);
-  const [isStoriesLoading, setIsStoriesLoading] = useState(true);
-  const [storiesError, setStoriesError] = useState("");
   const [persistedPosts, setPersistedPosts] = useState<Post[]>([]);
+  const [persistedShorts, setPersistedShorts] = useState<Post[]>([]);
+  const [persistedStories, setPersistedStories] = useState<Story[]>([]);
   const [isPostsLoading, setIsPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState("");
-  const [liveSessions, setLiveSessions] = useState<ZivoLiveSession[]>([]);
-  const [liveError, setLiveError] = useState("");
+  const [feedMessage, setFeedMessage] = useState("");
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
   const [storyProgress, setStoryProgress] = useState(0);
-  const [likedStories, setLikedStories] = useState<string[]>([]);
-  const [selectedMusic, setSelectedMusic] = useState<string | null>(null);
-  const viewerRef = useRef<HTMLDivElement>(null);
-  const pullRef = useRef<HTMLElement>(null);
+  const pullDistanceRef = useRef(0);
   const [pullDistance, setPullDistance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  const pullDistanceRef = useRef(0);
-  const lastFocusedElement = useRef<HTMLElement | null>(null);
-
-  const likeTargets = [...persistedPosts, ...posts].map((post) => ({ id: post.id, contentType: "post" as const }));
+  const pullRef = useRef<HTMLElement>(null);
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  usePageMeta("ZIVO Home — Premium Social Video", "Explore a curated feed of premium social video on ZIVO.");
-  const {
-    followedCreatorIds,
-    isLoading: isFollowsLoading,
-    updatingCreatorId,
-    error: followError,
-    toggleFollow,
-  } = useFollowedCreators();
-  const {
-    savedIds: savedPosts,
-    isLoading: isEngagementLoading,
-    isUpdating: isEngagementUpdating,
-    error: engagementError,
-    toggleSave,
-  } = useVideoEngagement();
-  const {
-    likedIds: likedPosts,
-    likeCounts,
-    isLoading: isLikesLoading,
-    updatingId: updatingLikeId,
-    error: likesError,
-    toggleLike,
-  } = usePersistentLikes(likeTargets);
-  const { hiddenUserIds, reload: reloadSafety } = useSafetyRelationships();
 
-  const feedPosts = [...persistedPosts, ...posts].filter(
+  usePageMeta("ZIVO Home — Premium Social Video", "Explore a curated feed of premium social video on ZIVO.");
+  const { followedCreatorIds, toggleFollow } = useFollowedCreators();
+  const { toggleSave } = useVideoEngagement();
+
+  const likeTargets = [...persistedShorts, ...persistedPosts, ...posts].map((post) => ({ id: post.id, contentType: "post" as const }));
+  const { toggleLike } = usePersistentLikes(likeTargets);
+  const { hiddenUserIds } = useSafetyRelationships();
+
+  // Combine regular posts and shorts so both appear in the home feed
+  const combinedAllPosts = [...persistedShorts, ...persistedPosts, ...posts];
+  const feedPosts = combinedAllPosts.filter(
     (post) => post.isPublic && !hiddenUserIds.includes(post.ownerId),
   );
 
@@ -361,460 +330,90 @@ export default function HomePage() {
     ...persistedStories.filter((story) => !story.expiresAt || story.expiresAt > Date.now()),
     ...demoStories,
   ];
-  const activeStory = activeStoryIndex === null ? null : stories[activeStoryIndex];
-
-  const toggleListItem = (id: string, setter: React.Dispatch<React.SetStateAction<string[]>>) =>
-    setter((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
-
-  useEffect(() => {
-    const navigationState = location.state as { storyPublished?: boolean; postPublished?: boolean } | null;
-    if (navigationState?.storyPublished) {
-      setFeedMessage("Your story is live for the next 24 hours.");
-      navigate("/", { replace: true, state: null });
-    }
-    if (navigationState?.postPublished) {
-      setFeedMessage("Your post is live in the Home feed.");
-      navigate("/", { replace: true, state: null });
-    }
-  }, [location.state, navigate]);
 
   useEffect(() => {
     let active = true;
-    const loadStories = async () => {
-      setIsStoriesLoading(true);
-      setStoriesError("");
+    const loadData = async () => {
+      setIsPostsLoading(true);
       try {
-        const loadedStories = await loadActiveStories();
-        if (active) setPersistedStories(loadedStories.map(storyFromStored));
-      } catch (error) {
-        if (active) setStoriesError(error instanceof Error ? error.message : "Unable to load stories right now.");
-      } finally {
-        if (active) setIsStoriesLoading(false);
-      }
-    };
-    void loadStories();
-    const refreshInterval = window.setInterval(() => void loadStories(), 60_000);
-    return () => {
-      active = false;
-      window.clearInterval(refreshInterval);
-    };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    const loadLives = async () => {
-      try {
-        const sessions = await loadLiveSessions();
+        const [loadedPosts, loadedShorts, loadedStories] = await Promise.all([
+          loadPosts().catch(() => [] as StoredPost[]),
+          loadShorts ? loadShorts().catch(() => [] as StoredPost[]) : Promise.resolve([] as StoredPost[]),
+          loadActiveStories().catch(() => [] as StoredStory[])
+        ]);
         if (active) {
-          setLiveSessions(sessions.filter((session) => session.status === "live"));
-          setLiveError("");
+          setPersistedPosts(loadedPosts.map(postFromStored));
+          setPersistedShorts(loadedShorts.map(postFromStored));
+          setPersistedStories(loadedStories.map(storyFromStored));
         }
       } catch (error) {
-        if (active) setLiveError(error instanceof Error ? error.message : "Unable to load Live sessions.");
-      }
-    };
-    void loadLives();
-    const interval = window.setInterval(() => void loadLives(), 15_000);
-    return () => {
-      active = false;
-      window.clearInterval(interval);
-    };
-  }, [location.key]);
-
-  useEffect(() => {
-    const onPostPublished = (event: Event) => {
-      const post = (event as CustomEvent<StoredPost>).detail;
-      if (!post || post.visibility !== "Public") return;
-      setPersistedPosts((current) => [postFromStored(post), ...current.filter((item) => item.id !== post.id)]);
-    };
-    const onPostUpdated = (event: Event) => {
-      const post = (event as CustomEvent<StoredPost>).detail;
-      if (!post) return;
-      setPersistedPosts((current) => post.visibility === "Public"
-        ? current.some((item) => item.id === post.id)
-          ? current.map((item) => item.id === post.id ? postFromStored(post) : item)
-          : [postFromStored(post), ...current]
-        : current.filter((item) => item.id !== post.id));
-    };
-    const onPostDeleted = (event: Event) => setPersistedPosts((current) => current.filter((item) => item.id !== (event as CustomEvent<string>).detail));
-    window.addEventListener(localPostDeletedEvent, onPostDeleted);
-    window.addEventListener(localPostPublishedEvent, onPostPublished);
-    window.addEventListener(localPostUpdatedEvent, onPostUpdated);
-    return () => {
-      window.removeEventListener(localPostDeletedEvent, onPostDeleted);
-      window.removeEventListener(localPostPublishedEvent, onPostPublished);
-      window.removeEventListener(localPostUpdatedEvent, onPostUpdated);
-    };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    const loadPersistedPosts = async () => {
-      setIsPostsLoading(true);
-      setPostsError("");
-      try {
-        const loadedPosts = await loadPosts();
-        if (active) setPersistedPosts(loadedPosts.map(postFromStored));
-      } catch (error) {
-        if (active) setPostsError(error instanceof Error ? error.message : "Unable to load posts right now.");
+        if (active) setPostsError(error instanceof Error ? error.message : "Unable to load feed.");
       } finally {
         if (active) setIsPostsLoading(false);
       }
     };
-    void loadPersistedPosts();
-    window.addEventListener(profileUpdatedEvent, loadPersistedPosts);
-    return () => {
-      active = false;
-      window.removeEventListener(profileUpdatedEvent, loadPersistedPosts);
-    };
+    void loadData();
+    return () => { active = false; };
   }, [location.key]);
-
-  useEffect(() => {
-    let active = true;
-    const loadCommentCounts = async () => {
-      try {
-        const entries = await Promise.all(
-          feedPosts.map(async (post) => [post.id, await loadCommentCount("post", post.id)] as const),
-        );
-        if (active) setPersistedCommentCounts(Object.fromEntries(entries));
-      } catch (error) {
-        if (active)
-          setFeedMessage(
-            error instanceof Error ? `Comments could not load: ${error.message}` : "Comments could not load right now.",
-          );
-      }
-    };
-
-    void loadCommentCounts();
-    return () => {
-      active = false;
-    };
-  }, [persistedPosts]);
-
-  useEffect(() => {
-    const element = pullRef.current;
-    if (!element) return;
-    let startX = 0;
-    let startY = 0;
-    let tracking = false;
-    const start = (event: TouchEvent) => {
-      tracking = window.scrollY <= 2 && !refreshing && activeStoryIndex === null;
-      startX = event.touches[0].clientX;
-      startY = event.touches[0].clientY;
-    };
-    const move = (event: TouchEvent) => {
-      if (!tracking || event.touches.length !== 1) return;
-      const dx = event.touches[0].clientX - startX;
-      const dy = event.touches[0].clientY - startY;
-      if (window.scrollY > 2 || Math.abs(dx) > Math.abs(dy) || dy <= 0) return;
-      event.preventDefault();
-      const distance = Math.min(110, 110 * (1 - Math.exp(-dy / 150)));
-      if (Math.abs(distance - pullDistanceRef.current) < 3) return;
-      pullDistanceRef.current = distance;
-      setPullDistance(distance);
-    };
-    const end = (event: TouchEvent) => {
-      if (!tracking) return;
-      tracking = false;
-      const shouldRefresh = event.type === 'touchend' && pullDistanceRef.current >= 65;
-      pullDistanceRef.current = 0;
-      setPullDistance(0);
-      if (!shouldRefresh) return;
-      setRefreshing(true);
-      void Promise.allSettled([loadPosts(), loadActiveStories(), loadLiveSessions()]).then((results) => {
-        const [postResult, storyResult, liveResult] = results;
-        if (postResult.status === 'fulfilled') { setPersistedPosts(postResult.value.map(postFromStored)); setPostsError(''); }
-        else setPostsError(postResult.reason instanceof Error ? postResult.reason.message : 'Unable to refresh posts.');
-        if (storyResult.status === 'fulfilled') { setPersistedStories(storyResult.value.map(storyFromStored)); setStoriesError(''); }
-        else setStoriesError(storyResult.reason instanceof Error ? storyResult.reason.message : 'Unable to refresh stories.');
-        if (liveResult.status === 'fulfilled') { setLiveSessions(liveResult.value.filter((session) => session.status === 'live')); setLiveError(''); }
-        else setLiveError(liveResult.reason instanceof Error ? liveResult.reason.message : 'Unable to refresh Live sessions.');
-        setFeedMessage(results.every((result) => result.status === 'fulfilled') ? 'Feed refreshed.' : 'Some feed content could not refresh.');
-      }).finally(() => setRefreshing(false));
-    };
-    element.addEventListener('touchstart', start, { passive: true });
-    element.addEventListener('touchmove', move, { passive: false });
-    element.addEventListener('touchend', end);
-    element.addEventListener('touchcancel', end);
-    return () => {
-      element.removeEventListener('touchstart', start);
-      element.removeEventListener('touchmove', move);
-      element.removeEventListener('touchend', end);
-      element.removeEventListener('touchcancel', end);
-    };
-  }, [refreshing, activeStoryIndex]);
-
-  const updatePostCommentCount = useCallback((postId: string, count: number) => {
-    setPersistedCommentCounts((current) => (current[postId] === count ? current : { ...current, [postId]: count }));
-  }, []);
-  const selectFeedTab = (tab: FeedTab) => {
-    setActiveTab(tab);
-    setFeedMessage(`${tab === "for-you" ? "For You" : "Following"} feed selected.`);
-  };
-  const handleFollow = async (post: Post) => {
-    const result = await toggleFollow(post.ownerId);
-    if (!result) return;
-    if (result.persisted && result.following && user) {
-      try {
-        await createNotification({
-          dedupeId: `follow:${user.id}:${post.ownerId}`,
-          kind: "follow",
-          recipientId: post.ownerId,
-          actor: await actorFromUser(user),
-          message: "started following you.",
-        });
-      } catch (caughtError) {
-        setFeedMessage(
-          `Following ${post.creator}. Saved to your account, but the notification could not be sent: ${caughtError instanceof Error ? caughtError.message : "unknown error"}`,
-        );
-        return;
-      }
-    }
-    setFeedMessage(
-      result.persisted
-        ? `${result.following ? "Following" : "Unfollowed"} ${post.creator}. Saved to your account.`
-        : `${result.following ? "Following" : "Unfollowed"} ${post.creator} for this session. Sign in to save it.`,
-    );
-  };
-  const handleLike = async (post: Post) => {
-    const result = await toggleLike({ id: post.id, contentType: "post" });
-    if (!result) return;
-    if (result.requiresAuth) {
-      setFeedMessage("Sign in to like posts.");
-      navigate("/sign-in");
-      return;
-    }
-    if (result.liked && user) {
-      try {
-        await createNotification({
-          dedupeId: `like:${user.id}:${post.id}`,
-          kind: "like",
-          recipientId: post.ownerId,
-          actor: await actorFromUser(user),
-          contentId: post.id,
-          contentType: "post",
-          contentPreview: post.image,
-          message: `liked your video “${post.caption}”`,
-        });
-      } catch (caughtError) {
-        setFeedMessage(
-          `Liked ${post.creator}'s post, but the notification could not be sent: ${caughtError instanceof Error ? caughtError.message : "unknown error"}`,
-        );
-        return;
-      }
-    }
-    setFeedMessage(`${result.liked ? "Liked" : "Unliked"} ${post.creator}'s post. Saved to your account.`);
-  };
-  const handleSave = async (post: Post) => {
-    const result = await toggleSave({
-      id: post.id,
-      contentType: "post",
-      creator: post.creator,
-      title: post.title || post.caption,
-      image: post.image,
-      imageAlt: post.imageAlt,
-      duration: post.duration,
-      views: post.views,
-    });
-    if (!result) return;
-    if (result.requiresAuth) {
-      setFeedMessage("Sign in to save posts.");
-      navigate("/sign-in");
-      return;
-    }
-    setFeedMessage(
-      `${result.selected ? "Saved" : "Removed"} ${post.creator}'s post ${result.selected ? "to" : "from"} your saved items.`,
-    );
-  };
-  const openStory = (index: number, trigger: HTMLElement) => {
-    lastFocusedElement.current = trigger;
-    setSeenStories((current) => (current.includes(stories[index].id) ? current : [...current, stories[index].id]));
-    setActiveStoryIndex(index);
-    setStoryProgress(0);
-  };
-  const closeStory = () => {
-    setActiveStoryIndex(null);
-    setStoryProgress(0);
-  };
-  const goToStory = (index: number) => {
-    setSeenStories((current) => (current.includes(stories[index].id) ? current : [...current, stories[index].id]));
-    setActiveStoryIndex(index);
-    setStoryProgress(0);
-  };
-  const advanceStory = () => {
-    if (activeStoryIndex === null) return;
-    activeStoryIndex === stories.length - 1 ? closeStory() : goToStory(activeStoryIndex + 1);
-  };
-  const previousStory = () => {
-    if (activeStoryIndex === null) return;
-    if (storyProgress > 12 || activeStoryIndex === 0) setStoryProgress(0);
-    else goToStory(activeStoryIndex - 1);
-  };
-
-  const openVideoFullscreen = async (video: HTMLVideoElement | null) => {
-    if (!video) return;
-    try {
-      if (video.requestFullscreen) await video.requestFullscreen();
-      else {
-        const iosVideo = video as HTMLVideoElement & { webkitEnterFullscreen?: () => void };
-        if (!iosVideo.webkitEnterFullscreen) throw new Error("Fullscreen is not available in this browser.");
-        iosVideo.webkitEnterFullscreen();
-      }
-    } catch (error) {
-      setFeedMessage(error instanceof Error ? error.message : "Fullscreen is not available in this browser.");
-    }
-  };
-
-  const sharePost = async (post: Post) => {
-    const text = `Watch “${post.caption}” by ${post.creator} on ZIVO.`;
-    try {
-      if (navigator.share) await navigator.share({ title: "ZIVO", text });
-      else if (navigator.clipboard) await navigator.clipboard.writeText(text);
-      else {
-        setShareMessage("Sharing is not available in this browser.");
-        return;
-      }
-      setShareMessage("Ready to share.");
-    } catch (error) {
-      setShareMessage(
-        error instanceof DOMException && error.name === "AbortError"
-          ? "Sharing cancelled."
-          : "Could not open sharing. Please try again.",
-      );
-    }
-  };
-
-  useEffect(() => {
-    if (activeStoryIndex === null) return;
-    const timer = window.setInterval(() => setStoryProgress((value) => Math.min(value + 2.5, 100)), 125);
-    return () => window.clearInterval(timer);
-  }, [activeStoryIndex]);
-
-  useEffect(() => {
-    if (activeStoryIndex !== null && storyProgress >= 100) advanceStory();
-  }, [storyProgress, activeStoryIndex]);
-
-  useEffect(() => {
-    if (activeStoryIndex === null) {
-      lastFocusedElement.current?.focus();
-      return;
-    }
-    const closeButton = viewerRef.current?.querySelector<HTMLElement>("[data-story-close]");
-    closeButton?.focus();
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        closeStory();
-        return;
-      }
-      if (event.key !== "Tab") return;
-      const focusable = Array.from(
-        viewerRef.current?.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
-        ) ?? [],
-      );
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      }
-      if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [activeStoryIndex]);
 
   return (
     <section ref={pullRef} className="-mx-5 -mt-5" aria-labelledby="page-title">
-      <div className="home-pull-indicator absolute inset-x-0 flex justify-center text-xs font-bold text-primary" style={{ top: -36, opacity: pullDistance > 8 ? 1 : 0 }} aria-hidden="true">
-        {pullDistance >= 65 ? 'Release to refresh' : 'Pull to refresh'}
-      </div>
-      <span className="sr-only" role="status">{refreshing ? 'Refreshing feed…' : ''}</span>
-      <h1 id="page-title" className="sr-only">
-        ZIVO home feed
-      </h1>
+      <h1 id="page-title" className="sr-only">ZIVO home feed</h1>
       <div className="home-feed-tabs z-30 border-b border-border/60 bg-background px-5 pt-2">
         <div className="mx-auto flex max-w-md items-center justify-between" role="tablist" aria-label="Home feed">
           <div className="flex gap-8">
-            {(
-              [
-                ["for-you", "For You"],
-                ["following", "Following"],
-              ] as const
-            ).map(([tab, label]) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab}
-                aria-controls="feed-panel"
-                onClick={() => selectFeedTab(tab)}
-                className={cn(
-                  "relative min-h-11 pb-2.5 text-sm font-extrabold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  activeTab === tab ? "text-foreground" : "text-muted-foreground",
-                )}
-              >
-                {label}
-                <span
+            {(["for-you", "Following"] as const).map(([tab, label]) => {
+              const tabKey = tab.toLowerCase() === "following" ? "following" : "for-you";
+              return (
+                <button
+                  key={tabKey}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tabKey}
+                  onClick={() => setActiveTab(tabKey)}
                   className={cn(
-                    "absolute inset-x-0 -bottom-px h-0.5 rounded-full transition-all",
-                    activeTab === tab ? "bg-primary opacity-100" : "scale-x-0 bg-primary opacity-0",
+                    "relative min-h-11 pb-2.5 text-sm font-extrabold transition-colors",
+                    activeTab === tabKey ? "text-foreground" : "text-muted-foreground"
                   )}
-                />
-              </button>
-            ))}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
-          <span className="inline-flex items-center gap-1.5 pb-2.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-primary">
-            <Sparkles size={13} aria-hidden="true" /> Fresh now
-          </span>
         </div>
       </div>
-      <p className="sr-only" aria-live="polite">
-        {feedMessage}
-      </p>
 
-      <div id="feed-panel" role="tabpanel" className={cn('home-pull-content mx-auto max-w-md space-y-6 px-5 pt-5', pullDistance > 0 && 'is-pulling')} style={{ transform: pullDistance ? `translateY(${pullDistance}px)` : undefined }}>
-        <section aria-labelledby="stories-title">
-          <div className="mb-3 flex items-end justify-between">
-            <div>
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.19em] text-primary">Fresh today</p>
-              <h2 id="stories-title" className="mt-0.5 text-lg font-extrabold tracking-[-0.045em] text-foreground">
-                Around your world
-              </h2>
+      <div className="mx-auto max-w-md space-y-6 px-5 pt-5">
+        {postsError && <p className="text-xs text-red-500">{postsError}</p>}
+        {isPostsLoading ? (
+          <p className="text-center text-sm text-muted-foreground py-10">Loading feed...</p>
+        ) : visiblePosts.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-10">No videos or shorts available in the feed yet.</p>
+        ) : (
+          visiblePosts.map((post) => (
+            <div key={post.id} className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <img src={post.avatar} alt={post.creator} className="size-10 rounded-full object-cover" />
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">{post.creator}</h3>
+                  <p className="text-xs text-muted-foreground">{post.handle}</p>
+                </div>
+              </div>
+              <p className="text-sm text-foreground">{post.caption}</p>
+              {post.image && (
+                <div className="relative aspect-[9/16] max-h-[480px] w-full overflow-hidden rounded-xl bg-black">
+                  <video
+                    src={post.videoUrl || post.mediaUrl}
+                    poster={post.image}
+                    controls
+                    className="size-full object-cover"
+                  />
+                </div>
+              )}
             </div>
-            <span className="text-xs font-bold text-muted-foreground">
-              {isStoriesLoading ? "" : "24h moments"}
-            </span>
-          </div>
-          {storiesError && (
-            <p
-              role="alert"
-              className="mb-3 rounded-xl border border-primary/45 bg-accent px-3 py-2 text-xs font-semibold text-card-foreground"
-            >
-              Your saved stories could not load: {storiesError}
-            </p>
-          )}
-          <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
-            <Link
-              to="/create"
-              aria-label="Add to your story"
-              className="group flex w-[68px] shrink-0 flex-col items-center gap-2 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span className="zivo-story-ring relative flex size-[62px] items-center justify-center rounded-full p-[3px]">
-                <span className="flex size-full items-center justify-center rounded-full border-2 border-background bg-card text-card-foreground">
-                  <Plus size={21} aria-hidden="true" />
-                </span>
-                <span className="absolute bottom-0 right-0 flex size-5 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground">
-                  <Plus size={12} strokeWidth={3} aria-hidden="true" />
-                </span>
-              </span>
-            </Link>
-          </div>
-        </section>
+          ))
+        )}
       </div>
     </section>
   );
