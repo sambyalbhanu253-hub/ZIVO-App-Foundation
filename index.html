@@ -97,11 +97,10 @@ class GenMBGoogleAuth {
       var top = window.screenY + (window.outerHeight - height) / 2
 
       var navBase = this.baseUrl
-      var extraOrigin = ''
+      var extraOrigin = '&origin=' + encodeURIComponent(window.location.origin)
       var host = window.location.hostname || ''
       if (/^preview-\d+-/.test(host) && host.slice(-10) === '.genmb.com') {
         navBase = 'https://' + host.split('.').slice(-2).join('.') + '/api/auth/google'
-        extraOrigin = '&origin=' + encodeURIComponent(window.location.origin)
       }
 
       var popup = window.open(
@@ -1931,7 +1930,7 @@ window.__genmbBindSdk(window.genmb.storage);
 
       this.shadowRoot.innerHTML =
         '<style>' + CSS + '</style>' +
-        '<video style="width: 100%; height: 100%; object-fit: cover; background: #000;" autoplay muted loop playsinline preload="auto" preload="metadata" controls playsinline' + attrs + ' poster="' + this._escape(poster) + '"></video>' +
+        '<video' + attrs + ' poster="' + this._escape(poster) + '"></video>' +
         '<span class="badge"></span>' +
         '<div class="chapters" part="chapters"></div>'
 
@@ -2673,7 +2672,7 @@ function _friendlyMsg(s) {
   if (!s) return 'Something went wrong. Please try again.'
   var t = String(s)
   if (/not-null|null value in column|required field was missing/i.test(t)) return 'Please fill in all required fields.'
-  if (/does not exist|undefined column|unknown field|doesn't exist yet/i.test(t)) return 'Something needs updating in this app. Please try again later.'
+  if (/does not exist|undefined column|unknown (field|column|option)|doesn't exist yet|filters must be|filter values must/i.test(t)) return 'Something needs updating in this app. Please try again later.'
   if (/being set up|setting up/i.test(t)) return 'Setting things up. Please try again in a moment.'
   if (/not found in schema|no schema found|not provisioned/i.test(t)) return "This part of the app isn't ready yet. Please try again shortly."
   if (/duplicate key|already exists|unique/i.test(t)) return 'That item already exists.'
@@ -2692,6 +2691,31 @@ function _dbError(raw, status) {
     console.warn('[genmb.db] ' + err.detail)
   }
   return err
+}
+
+function _dbQuery(params) {
+  if (!params) return ''
+  var parts = []
+  function add(key, value) {
+    if (value === undefined) return
+    if (value instanceof Date) value = value.toISOString()
+    if (value !== null && typeof value === 'object') {
+      throw _dbError('genmb.db: filter values must be plain values, got an object for "' + key +
+        '". Write comparisons as { "filter[price]": "gt:10" }.')
+    }
+    parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(value))
+  }
+  Object.keys(params).forEach(function (key) {
+    var value = params[key]
+    if ((key === 'filter' || key === 'where') && value && typeof value === 'object' && !Array.isArray(value)) {
+      Object.keys(value).forEach(function (col) { add('filter[' + col + ']', value[col]) })
+    } else if (key === 'limit' || key === 'offset' || key === 'sort' || key.indexOf('filter[') === 0) {
+      add(key, value)
+    } else if (value === null || typeof value !== 'object') {
+      add(key, value)
+    }
+  })
+  return parts.length ? '?' + parts.join('&') : ''
 }
 
 class GenMBDataClient {
@@ -2725,16 +2749,8 @@ class GenMBDataClient {
     var realtimeBase = this._realtimeBase
 
     return {
-      list: function (params) {
-        var qs = ''
-        if (params) {
-          var parts = []
-          Object.keys(params).forEach(function (key) {
-            parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
-          })
-          if (parts.length) qs = '?' + parts.join('&')
-        }
-        return request('GET', base + '/' + name + qs)
+      list: async function (params) {
+        return request('GET', base + '/' + name + _dbQuery(params))
       },
       getById: function (id) {
         return request('GET', base + '/' + name + '/' + id)
@@ -2748,16 +2764,8 @@ class GenMBDataClient {
       delete: function (id) {
         return request('DELETE', base + '/' + name + '/' + id)
       },
-      count: function (params) {
-        var qs = ''
-        if (params) {
-          var parts = []
-          Object.keys(params).forEach(function (key) {
-            parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
-          })
-          if (parts.length) qs = '?' + parts.join('&')
-        }
-        return request('GET', base + '/' + name + '/count' + qs)
+      count: async function (params) {
+        return request('GET', base + '/' + name + '/count' + _dbQuery(params))
       },
       createMany: function (records) {
         return request('POST', base + '/' + name + '/bulk', { records: records })
@@ -2799,7 +2807,7 @@ class GenMBDataClient {
         var res = await fetch(url, options)
         clearTimeout(timer)
         if (!res.ok) {
-          if (res.status >= 500 && attempt < 2) {
+          if (res.status >= 500 && method === 'GET' && attempt < 2) {
             attempt++
             await new Promise(function (r) { setTimeout(r, 300 * attempt) })
             continue
@@ -2822,7 +2830,7 @@ class GenMBDataClient {
       } catch (err) {
         clearTimeout(timer)
         if (err.name === 'AbortError') {
-          if (attempt < 2) {
+          if (method === 'GET' && attempt < 2) {
             attempt++
             await new Promise(function (r) { setTimeout(r, 300 * attempt) })
             continue
