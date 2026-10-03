@@ -263,3 +263,8 @@ export async function createPost({ user, mediaType, format, title, caption, desc
   window.dispatchEvent(new CustomEvent<StoredPost>(localPostPublishedEvent, { detail: post }))
   return post
 }
+
+export async function loadShorts(): Promise<StoredPost[]> {
+  const posts = await loadPosts();
+  return posts.filter(p => p.mediaType === "video" || p.format === "video");
+}
