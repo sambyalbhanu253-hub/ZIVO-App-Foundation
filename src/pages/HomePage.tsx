@@ -27,7 +27,7 @@ import ContentShareActions from "../components/ContentShareActions";
 import { useAuth } from "../auth/AuthProvider";
 import { actorFromUser, createNotification } from "../lib/notifications";
 import { loadLiveSessions, type ZivoLiveSession } from "../lib/live";
-import { loadPosts, loadShorts, localPostPublishedEvent, localPostUpdatedEvent, localPostDeletedEvent, type StoredPost } from "../lib/posts";
+import { loadPosts, localPostPublishedEvent, localPostUpdatedEvent, localPostDeletedEvent, type StoredPost } from "../lib/posts";
 import { profileUpdatedEvent } from "../lib/profiles";
 import { loadActiveStories, type StoredStory } from "../lib/stories";
 import { cn } from "../lib/utils";
@@ -149,33 +149,6 @@ const demoStories: Story[] = [
   },
 ];
 
-const music: Music[] = [
-  {
-    id: "neon-tide",
-    title: "Neon Tide",
-    artist: "Luna Vale",
-    uses: "18.4K videos",
-    artwork: "https://picsum.photos/seed/zivo-home-neon-tide/160/160",
-    artAlt: "Neon abstract album cover",
-  },
-  {
-    id: "slow-bloom",
-    title: "Slow Bloom",
-    artist: "Arden Gray",
-    uses: "12.8K videos",
-    artwork: "https://picsum.photos/seed/zivo-home-slow-bloom/160/160",
-    artAlt: "Floral album cover",
-  },
-  {
-    id: "afterglow",
-    title: "Afterglow Drive",
-    artist: "Milo North",
-    uses: "9.6K videos",
-    artwork: "https://picsum.photos/seed/zivo-home-afterglow/160/160",
-    artAlt: "Sunset album cover",
-  },
-];
-
 const posts: Post[] = [
   {
     id: "night-market",
@@ -294,31 +267,16 @@ function postFromStored(post: StoredPost): Post {
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<FeedTab>("for-you");
   const [persistedPosts, setPersistedPosts] = useState<Post[]>([]);
-  const [persistedShorts, setPersistedShorts] = useState<Post[]>([]);
   const [persistedStories, setPersistedStories] = useState<Story[]>([]);
   const [isPostsLoading, setIsPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState("");
-  const [feedMessage, setFeedMessage] = useState("");
-  const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
-  const [storyProgress, setStoryProgress] = useState(0);
-  const pullDistanceRef = useRef(0);
-  const [pullDistance, setPullDistance] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
-  const pullRef = useRef<HTMLElement>(null);
-  const { user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
 
   usePageMeta("ZIVO Home — Premium Social Video", "Explore a curated feed of premium social video on ZIVO.");
-  const { followedCreatorIds, toggleFollow } = useFollowedCreators();
-  const { toggleSave } = useVideoEngagement();
-
-  const likeTargets = [...persistedShorts, ...persistedPosts, ...posts].map((post) => ({ id: post.id, contentType: "post" as const }));
-  const { toggleLike } = usePersistentLikes(likeTargets);
+  const { followedCreatorIds } = useFollowedCreators();
   const { hiddenUserIds } = useSafetyRelationships();
 
-  // Combine regular posts and shorts so both appear in the home feed
-  const combinedAllPosts = [...persistedShorts, ...persistedPosts, ...posts];
+  const combinedAllPosts = [...persistedPosts, ...posts];
   const feedPosts = combinedAllPosts.filter(
     (post) => post.isPublic && !hiddenUserIds.includes(post.ownerId),
   );
@@ -326,24 +284,17 @@ export default function HomePage() {
   const visiblePosts =
     activeTab === "for-you" ? feedPosts : feedPosts.filter((post) => followedCreatorIds.includes(post.ownerId));
 
-  const stories = [
-    ...persistedStories.filter((story) => !story.expiresAt || story.expiresAt > Date.now()),
-    ...demoStories,
-  ];
-
   useEffect(() => {
     let active = true;
     const loadData = async () => {
       setIsPostsLoading(true);
       try {
-        const [loadedPosts, loadedShorts, loadedStories] = await Promise.all([
+        const [loadedPosts, loadedStories] = await Promise.all([
           loadPosts().catch(() => [] as StoredPost[]),
-          loadShorts ? loadShorts().catch(() => [] as StoredPost[]) : Promise.resolve([] as StoredPost[]),
           loadActiveStories().catch(() => [] as StoredStory[])
         ]);
         if (active) {
           setPersistedPosts(loadedPosts.map(postFromStored));
-          setPersistedShorts(loadedShorts.map(postFromStored));
           setPersistedStories(loadedStories.map(storyFromStored));
         }
       } catch (error) {
@@ -357,7 +308,7 @@ export default function HomePage() {
   }, [location.key]);
 
   return (
-    <section ref={pullRef} className="-mx-5 -mt-5" aria-labelledby="page-title">
+    <section className="-mx-5 -mt-5" aria-labelledby="page-title">
       <h1 id="page-title" className="sr-only">ZIVO home feed</h1>
       <div className="home-feed-tabs z-30 border-b border-border/60 bg-background px-5 pt-2">
         <div className="mx-auto flex max-w-md items-center justify-between" role="tablist" aria-label="Home feed">
