@@ -9,6 +9,7 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
     "@capacitor/cli": "latest",
     "clsx": "^2.1.0",
     "lucide-react": "0.577.0",
